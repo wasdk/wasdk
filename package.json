@@ -8,6 +8,17 @@
     "build": "node_modules/.bin/tsc",
     "install": "node_modules/.bin/tsc && node ./dist/get-tools.js"
   },
+  "bin": {
+    "wasm": "dist/wasm.js",
+    "wasm-clang": "bin/clang-4.0",
+    "wasm-llc": "bin/llc",
+    "wasm-llvm-link": "bin/llvm-link",
+    "wasm-s2wasm": "bin/s2wasm",
+    "wasm-as": "bin/wasm-as",
+    "wasm-dis": "bin/wasm-dis",
+    "wasm-c2wasm": "dist/wasm-c2wasm.js",
+    "wasm-bind": "dist/wasm-bind.js"
+  },
   "author": "",
   "license": "ISC",
   "repository": {
@@ -15,8 +26,10 @@
     "url": "https://github.com/mbebenita/wasdk"
   },
   "dependencies": {
+    "@types/argparse": "^1.0.30",
     "@types/es6-promise": "0.0.31",
     "@types/node": "^6.0.45",
+    "argparse": "^1.0.9",
     "decompress": "^4.0.0",
     "es6-promise": "^4.0.5",
     "gauge": "^2.6.0",
@@ -26,6 +39,7 @@
     "npmlog": "^4.0.0",
     "rimraf": "^2.5.4",
     "tmp": "0.0.29",
-    "typescript": "^2.0.3"
+    "typescript": "^2.0.3",
+    "webidl2": "^2.0.11"
   }
 }

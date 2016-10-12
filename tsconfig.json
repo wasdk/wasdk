@@ -8,6 +8,9 @@
         "node_modules"
     ],
     "files": [
-        "get-tools.ts"
+        "get-tools.ts",
+        "wasm-bind.ts",
+        "wasm-c2wasm.ts",
+        "wasm-eval.ts"
     ]
 }

@@ -82,8 +82,6 @@ function check() {
   child = spawn(llcPath, ['--version']);
   if (child.stdout.indexOf("LLVM version 4.0.0") < 0) {
     fail("Cannot validate llc executable.");
-  } else {
-    log.info("llc " + logSymbols.success);
   }
   child = spawn(llcPath, ["-o", sFile, bcFile]);
   if (child.status != 0) {
