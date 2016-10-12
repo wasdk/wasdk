@@ -2,12 +2,9 @@
 // let log = require("log");
 
 import * as fs from "fs";
-
+import * as http from "http";
 
 let log = require('npmlog');
-var request = require('request');
-var progress = require('request-progress');
-var ProgressBar = require('progress');
 var Gauge = require("gauge");
 var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
@@ -18,7 +15,6 @@ var spawn = require('child_process').spawnSync;
 var logSymbols = require('log-symbols');
 
 let baseUrl = "http://people.mozilla.org/~ydelendik/tmp/llvm-binaryen-mac.tar.gz";
-// let baseUrl = "http://google.com/doodle.png";
 let binDirectory = "./bin";
 let clangPath = binDirectory + "/clang-4.0";
 let llcPath = binDirectory + "/llc";
@@ -36,25 +32,25 @@ function bytesToSize(bytes) {
   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
 };
 
-function downloadFile(url: string, path: string): Promise<string> {
+function downloadFile(url: string, path: string): Promise<any> {
+  var file = fs.createWriteStream(path);
   return new Promise((resolve, reject) => {
-    log.info(`Downloading ${url} ${path}`);
-    progress(request(url), {
-      throttle: 100,
-      delay: 1000
-    })
-      .on('progress', function (state) {
-        gauge.show(`Downloading Tools`, state.percentage);
-      })
-      .on('error', function (err) {
-        gauge.hide();
-        reject();
-      })
-      .on('end', function () {
+    var request = http.get(url, function (response) {
+      var length = parseInt(response.headers['content-length'], 10);
+      var downloaded = 0;
+      response.on('data', function (chunk) {
+        downloaded += chunk.length;
+        gauge.show("Downloading Tools", downloaded / length);
+      }).on('end', function (chunk) {
+        file.end();
         gauge.hide();
         resolve(path);
-      })
-      .pipe(fs.createWriteStream(path));
+      }).pipe(file);
+    }).on('error', function () {
+      file.end();
+      gauge.hide();
+      reject();
+    });
   });
 }
 
