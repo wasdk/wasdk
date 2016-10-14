@@ -3,6 +3,7 @@
 
 import * as fs from "fs";
 import * as http from "http";
+import * as https from "https";
 
 let log = require('npmlog');
 var Gauge = require("gauge");
@@ -11,18 +12,25 @@ var mkdirp = require('mkdirp');
 var tmp = require('tmp');
 var Promise = require('es6-promise');
 var decompress = require('decompress');
-var spawn = require('child_process').spawnSync;
+var spawnSync = require('child_process').spawnSync;
 var logSymbols = require('log-symbols');
+
+let emsdkUrl = "https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz";
+
 
 let baseUrl = "http://people.mozilla.org/~ydelendik/tmp/llvm-binaryen-mac.tar.gz";
 let binDirectory = "./bin";
+let toolsDirectory = binDirectory + "/tools";
+let llvmDirectory = binDirectory + "/llvm";
+let emscriptenDirectory = binDirectory + "/emscripten";
+
 let clangPath = binDirectory + "/clang-4.0";
 let llcPath = binDirectory + "/llc";
 let s2wasmPath = binDirectory + "/s2wasm";
 let wasmAsPath = binDirectory + "/wasm-as";
 let wasmDisPath = binDirectory + "/wasm-dis";
 
-var gauge = new Gauge();
+let emsdkDirectory = binDirectory + "/emsdk_portable";
 
 declare var Math: any;
 function bytesToSize(bytes) {
@@ -32,30 +40,31 @@ function bytesToSize(bytes) {
   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
 };
 
-function downloadFile(url: string, path: string): Promise<any> {
+function downloadFile(url: string, path: string, title: string): Promise<any> {
   var file = fs.createWriteStream(path);
   return new Promise((resolve, reject) => {
-    var request = http.get(url, function (response) {
+    let httpOrHttps: any = url.indexOf("https") === 0 ? https : http;
+    var request = httpOrHttps.get(url, function (response) {
       var length = parseInt(response.headers['content-length'], 10);
       var downloaded = 0;
+      // console.log(`Downloading ${title}`);
       response.on('data', function (chunk) {
         downloaded += chunk.length;
-        gauge.show("Downloading Tools", downloaded / length);
+        // gauge.show(`Downloading ${title}`, downloaded / length);
       }).on('end', function (chunk) {
         file.end();
-        gauge.hide();
         resolve(path);
       }).pipe(file);
     }).on('error', function () {
+      console.error("Failed to download " + url);
       file.end();
-      gauge.hide();
       reject();
     });
   });
 }
 
 function fail(reason: string) {
-  log.error(reason);
+  console.error(reason);
   process.exit(1);
 }
 
@@ -65,25 +74,26 @@ function check() {
   let sFile = tmp.fileSync({ postfix: ".s" }).name;
   let wastFile = tmp.fileSync({ postfix: ".wast" }).name;
   let wasmFile = tmp.fileSync({ postfix: ".wasm" }).name;
-  var child = spawn(clangPath, ['--version']);
+  var child = spawnSync(clangPath, ['--version']);
+
   // Check clang
   if (child.stdout.indexOf("clang version 4.0.0") < 0) {
     fail("Cannot validate clang executable.");
   }
   fs.writeFileSync(cppFile, "int main() { return 42; }", 'utf8');
-  child = spawn(clangPath, ["--target=wasm32", "-O0", cppFile, "-c", "-emit-llvm", "-o", bcFile]);
+  child = spawnSync(clangPath, ["--target=wasm32", "-O0", cppFile, "-c", "-emit-llvm", "-o", bcFile]);
   if (child.status != 0) {
     fail(child.stderr);
   } else {
-    log.info("clang " + logSymbols.success);
+    console.log("clang " + logSymbols.success);
   }
 
   // Check llc
-  child = spawn(llcPath, ['--version']);
+  child = spawnSync(llcPath, ['--version']);
   if (child.stdout.indexOf("LLVM version 4.0.0") < 0) {
     fail("Cannot validate llc executable.");
   }
-  child = spawn(llcPath, ["-o", sFile, bcFile]);
+  child = spawnSync(llcPath, ["-o", sFile, bcFile]);
   if (child.status != 0) {
     fail(child.stderr);
   }
@@ -91,11 +101,11 @@ function check() {
   if (sFileData.indexOf("main:") < 0) {
     fail("Something went wrong when compiling to .s file.");
   } else {
-    log.info("llc " + logSymbols.success);
+    console.log("llc " + logSymbols.success);
   }
 
   // Check s2wasm
-  child = spawn(s2wasmPath, [sFile, "-o", wastFile]);
+  child = spawnSync(s2wasmPath, [sFile, "-o", wastFile]);
   if (child.status != 0) {
     fail(child.stderr);
   }
@@ -103,39 +113,99 @@ function check() {
   if (wastFileData.indexOf("(module") < 0) {
     fail("Something went wrong when compiling to .wast file.");
   } else {
-    log.info("s2wasm " + logSymbols.success);
+    console.log("s2wasm " + logSymbols.success);
   }
 
   // Check wasm-as
-  child = spawn(wasmAsPath, [wastFile, "-o", wasmFile]);
+  child = spawnSync(wasmAsPath, [wastFile, "-o", wasmFile]);
   if (child.status != 0) {
     fail(child.stderr);
   }
   if (!fs.existsSync(wasmFile)) {
     fail("Something went wrong when compiling to .wasm file.");
   } else {
-    log.info("wasm-as " + logSymbols.success);
+    console.log("wasm-as " + logSymbols.success);
   }
 
   // Check s2wasm
-  log.info("All appears to be working.");
+  console.log("All appears to be working.");
+}
+
+function checkStatus(child) {
+  if (child.status != 0) {
+    fail(child.stderr);
+  }
+  console.log(logSymbols.success);
+}
+
+function installEmscripten(): Promise<any> {
+  let child;
+  let path = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz";
+  console.log("Installing Emscripten");
+  return new Promise(function (resolve, reject) {
+    process.stdout.write("  Downloading ... ");
+    downloadFile(path, tmp.tmpNameSync({ postfix: ".tar.gz" }), "Emscripten").then(function (path) {
+      console.log(logSymbols.success);
+      mkdirp(emscriptenDirectory, function () {
+        process.stdout.write("  Unpacking ... ");
+        child = spawnSync("tar", ["-xvzf", path, "--strip", 1, "-C", emscriptenDirectory]);
+        checkStatus(child);
+        resolve();
+      });
+    }).catch(() => {
+      reject();
+    });
+  });
+}
+
+function installLLVM(): Promise<any> {
+  let child;
+  let path = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/osx_64bit/emscripten-llvm-latest.tar.gz";
+  console.log("Installing LLVM");
+  return new Promise(function (resolve, reject) {
+    process.stdout.write("  Downloading ... ");
+    downloadFile(path, tmp.tmpNameSync({ postfix: ".tar.gz" }), "LLVM").then(function (path) {
+      console.log(logSymbols.success);
+      mkdirp(llvmDirectory, function () {
+        process.stdout.write("  Unpacking ... ");
+        child = spawnSync("tar", ["-xvzf", path, "--strip", 1, "-C", llvmDirectory]);
+        checkStatus(child);
+        resolve();
+      });
+    }).catch(() => {
+      reject();
+    });
+  });
+}
+
+function installTools(): Promise<any> {
+  let child;
+  let path = "http://people.mozilla.org/~ydelendik/tmp/llvm-binaryen-mac.tar.gz";
+  console.log("Installing Tools");
+  return new Promise(function (resolve, reject) {
+    process.stdout.write("  Downloading ... ");
+    downloadFile(path, tmp.tmpNameSync({ postfix: ".tar.gz" }), "Tools").then(function (path) {
+      console.log(logSymbols.success);
+      mkdirp(toolsDirectory, function () {
+        process.stdout.write("  Unpacking ... ");
+        child = spawnSync("tar", ["-xvzf", path, "-C", toolsDirectory]);
+        checkStatus(child);
+        resolve();
+      });
+    }).catch(() => {
+      reject();
+    });
+  });
 }
 
 function downloadFilesAndCheck() {
-  downloadFile(baseUrl, tmp.fileSync({ postfix: ".tar.gz" }).name).then((path) => {
-    gauge.show(`Unpacking Tools`);
-    decompress(path, binDirectory).then(function (files) {
-      if (files.length == 0) {
-        fail(`Cannot unpack file ${path}`);
-      } else {
-        check();
-      }
-      gauge.hide();
-    }, function (err) {
-      log.error('unzip', 'Cannot unpack file: %s', err);
-      return;
+  installEmscripten().then(() => {
+    installLLVM().then(() => {
+      installTools().then(() => {
+      });
     });
   });
+  return;
 }
 
 let clean = false;
@@ -148,6 +218,6 @@ if (fs.existsSync(clangPath) && fs.existsSync(llcPath)) {
   check();
 } else {
   mkdirp(binDirectory, function () {
-    downloadFilesAndCheck();
+    // downloadFilesAndCheck();
   });
 }

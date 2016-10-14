@@ -135,7 +135,7 @@ function renderAttribute(i: IDLInterface, v: IDLAttribute) {
   // tFile.writeLn(v.name + `: ${typeToString(v.idlType)};`);
   let name = i.name + "_get_" + v.name;
   tFile.enter(`get ${v.name} () {`);
-  tFile.writeLn(`return ${name} (this.ptr);`);
+  tFile.writeLn(`return Module.${name} (this.ptr);`);
   tFile.leave("}");
   hFile.writeLn(`${typeToC(v.idlType)} ${name} (${i.name} *self) { return self->${v.name}; }`);
 }
@@ -150,7 +150,7 @@ function renderOperation(i: IDLInterface, v: IDLOperation) {
       return a.name + ".ptr";
     }
   }).join(", ");
-  tFile.writeLn("return " + i.name + "_" + v.name + `(${args});`);
+  tFile.writeLn("return Module." + i.name + "_" + v.name + `(${args});`);
   tFile.leave("}");
   // hFile.writeLn
 }

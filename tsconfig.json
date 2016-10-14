@@ -10,7 +10,9 @@
     "files": [
         "get-tools.ts",
         "wasm-bind.ts",
-        "wasm-c2wasm.ts",
-        "wasm-eval.ts"
+        "wasm-sm.ts",
+        "shared.ts",
+        "wasdk.ts",
+        "download.ts"
     ]
 }
