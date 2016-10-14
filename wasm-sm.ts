@@ -1,3 +1,10 @@
+declare let load: any;
+declare let wasmTextToBinary: any;
+declare let read: any;
+declare let WebAssembly: any;
+declare let wasmExtractCode: any;
+declare let capstone: any;
+
 load("lib/capstone.x86.min.js");
 
 enum SectionID {
@@ -108,8 +115,9 @@ class Wasm extends WasmParser {
       let section = this.sections[i];
       if (section.id === id) {
         if (id === SectionID.User) {
-          if (section.name === name) {
-            return section
+          let userSection = section as WasmUserSection;
+          if (userSection.name === name) {
+            return userSection;
           }
         } else {
           return section;
@@ -178,13 +186,13 @@ c.segments.forEach(s => {
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
   let code = c.code.subarray(begin, end);
-  print("Func " + nameSection.functionNames[s.funcDefIndex]);
+  console.log("Func " + nameSection.functionNames[s.funcDefIndex]);
   var instructions = cs.disasm(code, begin);
   instructions.forEach(function (instr, i) {
     let str = "0x" + padLeft(instr.address.toString(16), 8, "0") + " ";
     str += padLeft(instr.mnemonic, 8, " ") + " ";
     str += instr.op_str + " ";
-    print(str);
+    console.log(str);
   });
 });
 

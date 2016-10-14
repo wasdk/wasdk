@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node_modules/.bin/tsc",
-    "install": "node_modules/.bin/tsc && node ./dist/wasdk.js --install"
+    "install": "node_modules/.bin/tsc && node ./dist/wasdk.js install"
   },
   "bin": {
     "wasdk": "./dist/wasdk.js"
@@ -19,8 +19,11 @@
   },
   "dependencies": {
     "@types/argparse": "^1.0.30",
+    "@types/colors": "^0.6.33",
     "@types/es6-promise": "0.0.31",
+    "@types/fs-extra": "0.0.33",
     "@types/node": "^6.0.45",
+    "@types/tmp": "0.0.31",
     "argparse": "^1.0.9",
     "colors": "^1.1.2",
     "decompress": "^4.0.0",

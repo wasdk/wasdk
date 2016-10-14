@@ -32,6 +32,12 @@ export let TMP_DIR = pathFromRoot(".wasdk-tmp");
 export function fail(message) {
   throw new Error(message)
 }
+export function endsWith(subjectString: string, searchString: string): boolean {
+  let position = subjectString.length;
+  position -= searchString.length;
+  var lastIndex = subjectString.lastIndexOf(searchString, position);
+  return lastIndex !== -1 && lastIndex === position;
+}
 export function flatten(elements: any [], target?: any []) {
   if (!target) target = [];
   elements.forEach(element => {
@@ -98,7 +104,7 @@ export function decompressFileSync(filename: string, dstPath: string, strip = 0)
   // console.log(`Unpacking ${filename} to ${dstPath}`);
   process.stdout.write(`Unpacking`);
   let res;
-  if (filename.endsWith(".zip")) {
+  if (endsWith(filename, ".zip")) {
     res = spawnSync("unzip", ["-o", filename, "-d", dstPath]);
   } else {
     res = spawnSync("tar", ["-xvzf", filename, "--strip", strip, "-C", dstPath]);

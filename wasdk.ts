@@ -3,7 +3,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
-import { fail, writeEMConfig, flatten, createTmpDirectory, createTmpFilename, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
+import { fail, endsWith, writeEMConfig, flatten, createTmpDirectory, createTmpFilename, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
 import { EMCC, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 var spawnSync = require('child_process').spawnSync;
 var colors = require('colors');
@@ -84,7 +84,7 @@ function compile() {
   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
   let filedCopied = false;
   postfixes.forEach(postfix => {
-    if (output.endsWith(postfix)) {
+    if (endsWith(output, postfix)) {
       let outputFile = path.join(TMP_DIR, filename + postfix);
       fs.copySync(outputFile, output);
       console.log(`Wrote ${output} okay.`.green);
