@@ -21,11 +21,15 @@ let compileParser = subparsers.addParser('cc', { help: "Compile .c/.cpp files.",
 compileParser.addArgument(['-o', '--output'], { help: 'Output file.' });
 compileParser.addArgument(['input'], { help: 'Input file(s).', nargs: "+" });
 
+let smParser = subparsers.addParser('disassemble', { help: "Disassemble files.", addHelp: true });
+smParser.addArgument(['input'], { help: 'Input .wast/.wasm file.' });
+
 var cliArgs = parser.parseArgs();
 
 if (cliArgs.clean) clean();
 if (cliArgs.command === "install") install();
 if (cliArgs.command === "cc") compile();
+if (cliArgs.command === "disassemble") disassemble();
 
 function section(name) {
   console.log(name.bold.green.underline);
@@ -93,4 +97,11 @@ function compile() {
     }
   });
   if (!filedCopied) fail(`Cannot write ${output} file.`.red);
+}
+
+function disassemble() {
+  let input = path.resolve(cliArgs.input);
+  let args = flatten(["./dist/wasm-sm.js", input]);
+  let res = spawnSync(path.join(SPIDERMONKEY_ROOT, "js"), args, { stdio: [0, 1, 2] });
+  if (res.status !== 0) fail("Disassembly error.");
 }

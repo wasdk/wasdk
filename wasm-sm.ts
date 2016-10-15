@@ -177,24 +177,76 @@ function padLeft(s: string, l: number, c: string) {
   while (s.length < l) s = c + s;
   return s;
 }
-
+function padRight(s: string, l: number, c: string) {
+  while (s.length < l) s = s + c;
+  return s;
+}
 
 let nameSection = wasmFile.findSection(SectionID.User, "name") as WasmNameSection;
+
+var x86JumpInstructions = [
+  "jmp", "ja", "jae", "jb", "jbe", "jc", "je", "jg", "jge", "jl", "jle", "jna", "jnae",
+  "jnb", "jnbe", "jnc", "jne", "jng", "jnge", "jnl", "jnle", "jno", "jnp", "jns", "jnz",
+  "jo", "jp", "jpe", "jpo", "js", "jz"
+];
+
+function isBranch(instr) {
+  return x86JumpInstructions.indexOf(instr.mnemonic) >= 0;
+}
+
+function toAddress(n) {
+  var s = n.toString(16);
+  while (s.length < 6) {
+    s = "0" + s;
+  }
+  return "0x" + s;
+}
+
+function toBytes(a) {
+  return a.map(function (x) { return padLeft(Number(x).toString(16), 2, "0"); }).join(" ");
+}
+
+let assemblyInstructionsByAddress = Object.create(null);
+
 c.segments.forEach(s => {
   if (!s.funcDefIndex) return;
-  // print(JSON.stringify(s, null, 2));
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
   let code = c.code.subarray(begin, end);
-  console.log("Func " + nameSection.functionNames[s.funcDefIndex]);
+  console.log(nameSection.functionNames[s.funcDefIndex] + ":");
   var instructions = cs.disasm(code, begin);
-  instructions.forEach(function (instr, i) {
-    let str = "0x" + padLeft(instr.address.toString(16), 8, "0") + " ";
-    str += padLeft(instr.mnemonic, 8, " ") + " ";
-    str += instr.op_str + " ";
-    console.log(str);
-  });
+  printInstructions(instructions);
 });
+
+function printInstructions(instructions: any []) {
+  var basicBlocks = {};
+  instructions.forEach(function(instr, i) {
+    assemblyInstructionsByAddress[instr.address] = instr;
+    if (isBranch(instr)) {
+      var targetAddress = parseInt(instr.op_str);
+      if (!basicBlocks[targetAddress]) {
+        basicBlocks[targetAddress] = [];
+      }
+      basicBlocks[targetAddress].push(instr.address);
+      if (i + 1 < instructions.length) {
+        basicBlocks[instructions[i + 1].address] = [];
+      }
+    }
+  });
+  instructions.forEach(function(instr) {
+    let s = "";
+    if (basicBlocks[instr.address]) {
+      s += " " + padRight(toAddress(instr.address) + ":", 39, " ");
+      if (basicBlocks[instr.address].length > 0) {
+        s += "; " + toAddress(instr.address) + " from: [" + basicBlocks[instr.address].map(toAddress).join(", ") + "]";
+      }
+      s += "\n";
+    }
+    s += "  " + padRight(instr.mnemonic + " " + instr.op_str, 38, " ");
+    s += "; " + toAddress(instr.address) + " " + toBytes(instr.bytes);
+    console.log(s);
+  });
+}
 
 cs.delete();
 
