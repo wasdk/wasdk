@@ -11,7 +11,7 @@ var spawnSyncFn = require('child_process').spawnSync;
 
 export const WASDK_ROOT = path.resolve(path.dirname(path.dirname(__filename)));
 
-export function spawnSync(command: string, args: string [], options: any): any {
+export function spawnSync(command: string, args: any [], options?: any): any {
   console.info(command + " " + args.join(" "));
   return spawnSyncFn(command, args, options);
 }
