@@ -7,9 +7,14 @@ import * as https from "https";
 var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
 var logSymbols = require('log-symbols');
-var spawnSync = require('child_process').spawnSync;
+var spawnSyncFn = require('child_process').spawnSync;
 
 export const WASDK_ROOT = path.resolve(path.dirname(path.dirname(__filename)));
+
+export function spawnSync(command: string, args: string [], options: any): any {
+  console.info(command + " " + args.join(" "));
+  return spawnSyncFn(command, args, options);
+}
 export function pathFromRoot(...pathSegments: string []): string {
   pathSegments.unshift(WASDK_ROOT);
   return path.resolve.apply(path, pathSegments);
