@@ -9,7 +9,8 @@
     "install": "./dist/wasdk.js install"
   },
   "bin": {
-    "wasdk": "./dist/wasdk.js"
+    "wasdk": "./dist/wasdk.js",
+    "emcc": "./bin/emscripten/emcc"
   },
   "author": "",
   "license": "ISC",

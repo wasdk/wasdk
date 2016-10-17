@@ -1,0 +1,4 @@
+interface Point {
+  attribute long x;
+  attribute long y;
+};

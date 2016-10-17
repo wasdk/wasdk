@@ -32,6 +32,7 @@ export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
 export let LIB_ROOT = pathFromRoot("lib");
 
 export let EMCC = pathFromRoot("bin", "emscripten", "emcc");
+export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
 export let TMP_DIR = pathFromRoot(".wasdk-tmp");
 
 export function fail(message) {
@@ -67,7 +68,7 @@ function element<T>(array: T[], i): T {
   if (i >= 0) return array[i];
   return array[array.length + i];
 }
-function pathLooksLikeDirectory(path: string) {
+export function pathLooksLikeDirectory(path: string) {
   if (path === ".") return true;
   let lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
   let lastDot = path.lastIndexOf('.');
