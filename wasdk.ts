@@ -42,13 +42,20 @@ function sdk() {
 }
 function install() {
   let url, filename;
+  if (process.platform !== "darwin" && process.platform !== "linux") fail(`Platform ${process.platform} not supported.`);
+
+  // Emscripten is platform independent
   section("Installing Emscripten");
   url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz";
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, EMSCRIPTEN_ROOT, 1);
 
   section("Installing LLVM");
-  url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/osx_64bit/emscripten-llvm-latest.tar.gz";
+  if (process.platform === 'darwin') {
+    url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/osx_64bit/emscripten-llvm-latest.tar.gz";
+  } else if (process.platform === 'linux') {
+    url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/linux_64bit/emscripten-llvm-latest.tar.gz";
+  }
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, LLVM_ROOT, 1);
 
@@ -58,10 +65,13 @@ function install() {
   decompressFileSync(filename, BINARYEN_ROOT, 0);
 
   section("Installing Spidermonkey");
-
   // "http://areweflashyet.com/wasm/jsshell-latest.tar.gz"
-  // url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip";
-  url = "http://areweflashyet.com/wasm/jsshell-latest.tar.gz";
+  // url = "http://areweflashyet.com/wasm/jsshell-latest.tar.gz";
+  if (process.platform === 'darwin') {
+    url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip";
+  } else if (process.platform === 'linux') {
+    url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip";
+  }
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, SPIDERMONKEY_ROOT, 0);
 

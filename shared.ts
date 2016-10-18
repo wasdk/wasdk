@@ -12,7 +12,7 @@ var spawnSyncFn = require('child_process').spawnSync;
 export const WASDK_ROOT = path.resolve(path.dirname(path.dirname(__filename)));
 
 export function spawnSync(command: string, args: any [], options?: any): any {
-  console.info(command + " " + args.join(" "));
+  // console.info(command + " " + args.join(" "));
   return spawnSyncFn(command, args, options);
 }
 export function pathFromRoot(...pathSegments: string []): string {
@@ -133,12 +133,6 @@ export function deleteFileSync(filename: string) {
   filename = wasdkPath(filename);
   rimraf.sync(filename);
 }
-// export function createTmpDirectory(): string {
-//   return wasdkPath(tmp.dirSync({ template: `${TMP_DIR}/tmp-XXXXXX` }).name);
-// }
 export function createTmpFile(): string {
-  let name = tmp.fileSync({template: `${TMP_DIR}/tmp-XXXXXX`}).name;
-  console.log("Generated: : " + name);
-  return name;
-
+  return tmp.fileSync({template: `${TMP_DIR}/tmp-XXXXXX`}).name;
 }
