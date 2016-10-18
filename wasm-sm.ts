@@ -213,7 +213,11 @@ c.segments.forEach(s => {
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
   let code = c.code.subarray(begin, end);
-  console.log(nameSection.functionNames[s.funcDefIndex] + ":");
+  if (nameSection) {
+    console.log(nameSection.functionNames[s.funcDefIndex] + ":");
+  } else {
+    console.log(`Func ${s.funcDefIndex}:`]);
+  }
   var instructions = cs.disasm(code, begin);
   printInstructions(instructions);
 });

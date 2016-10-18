@@ -3,7 +3,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
-import { spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpDirectory, createTmpFilename, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
+import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
 import { EMCC, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 var colors = require('colors');
 var parser = new ArgumentParser({
@@ -13,28 +13,33 @@ var parser = new ArgumentParser({
 });
 let subparsers = parser.addSubparsers({ title: 'Commands', dest: "command" });
 
-let installParser = subparsers.addParser('install', { addHelp: true });
-parser.addArgument(['--clean'], { action: 'storeTrue', help: 'Clean SDK' });
+let sdkParser = subparsers.addParser('sdk', { addHelp: true });
+sdkParser.addArgument(['--install'], { action: 'storeTrue', help: 'Install SDK' });
+sdkParser.addArgument(['--clean'], { action: 'storeTrue', help: 'Clean SDK' });
 
-let compileParser = subparsers.addParser('cc', { help: "Compile .c/.cpp files.", addHelp: true });
-compileParser.addArgument(['-o', '--output'], { help: 'Output file.' });
-compileParser.addArgument(['--idl'], { help: 'WebIDL file.' });
-compileParser.addArgument(['input'], { help: 'Input file(s).', nargs: "+" });
+let ezParser = subparsers.addParser('ez', { help: "Compile .c/.cpp files.", addHelp: true });
+ezParser.addArgument(['-o', '--output'], { help: 'Output file.' });
+ezParser.addArgument(['--idl'], { help: 'WebIDL file.' });
+ezParser.addArgument(['--debuginfo', '-g'], { action: 'storeTrue', help: 'Emit names section and debug info' });
+ezParser.addArgument(['input'], { help: 'Input file(s).' });
 
 let smParser = subparsers.addParser('disassemble', { help: "Disassemble files.", addHelp: true });
 smParser.addArgument(['input'], { help: 'Input .wast/.wasm file.' });
 
 var cliArgs = parser.parseArgs();
 
-if (cliArgs.clean) clean();
-if (cliArgs.command === "install") install();
-if (cliArgs.command === "cc") compile();
+if (cliArgs.command === "sdk") sdk();
+if (cliArgs.command === "ez") ezCompile();
 if (cliArgs.command === "disassemble") disassemble();
 
 function section(name) {
   console.log(name.bold.green.underline);
 }
-// console.dir(cliArgs);
+
+function sdk() {
+  if (cliArgs.clean) clean();
+  if (cliArgs.install) install();
+}
 function install() {
   let url, filename;
   section("Installing Emscripten");
@@ -73,47 +78,52 @@ function clean() {
   deleteFileSync(EMSCRIPTEN_ROOT);
 }
 
-function compile() {
+function ezCompile() {
   console.dir(cliArgs);
-  let inputFiles = cliArgs.input.map(file => path.resolve(file));
-  let outputFile = path.resolve(cliArgs.output);
+  let inputFiles = [path.resolve(cliArgs.input)];
+  let tmpInputFile = createTmpFile() + ".cpp";
+  appendFilesSync(tmpInputFile, inputFiles);
+
   let res, args, glueFile;
   if (cliArgs.idl) {
     let idlFile = path.resolve(cliArgs.idl);
-    glueFile = path.join(TMP_DIR, createTmpFilename());
+    glueFile = createTmpFile();
     args = [WEBIDL_BINDER, idlFile, glueFile];
     res = spawnSync("python", args, { stdio: [0, 1, 2] });
     if (res.status !== 0) fail("WebIDL binding error.");
     if (!fs.existsSync(glueFile + ".cpp") || !fs.existsSync(glueFile + ".js"))
       fail("WebIDL binding error.");
   }
-  let filename = createTmpFilename();
-  args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1"];
-  args.push(inputFiles);
   if (glueFile) {
-    args.push([glueFile + ".cpp"]);
+    appendFilesSync(tmpInputFile, [glueFile + ".cpp"]);
   }
-  args.push(["-o", path.join(TMP_DIR, filename + ".js")]);
+  args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
+  // args.push(["-s", "ONLY_MY_CODE=1"]);
+  if (cliArgs.debuginfo) args.push("-g 3");
+  args.push(tmpInputFile);
+  let outputFile = path.resolve(cliArgs.output);
+  args.push(["-o", outputFile]);
   if (glueFile) {
     args.push(["--post-js", glueFile + ".js"]);
   }
   // console.info(EMCC + " " + args.join(" "));
   res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Compilation error.");
+  // EMCC generates 4 files, copy only he one we need.
   let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
-  let outputFiles = postfixes.map(postfix => path.join(TMP_DIR, filename + postfix));
+  let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
+  let outputFiles = postfixes.map(postfix => filename + postfix);
   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
-  let filedCopied = false;
-  postfixes.forEach(postfix => {
-    if (endsWith(outputFile, postfix)) {
-      let outputFile = path.join(TMP_DIR, filename + postfix);
-      fs.copySync(outputFile, outputFile);
-      console.log(`Wrote ${outputFile} okay.`.green);
-      filedCopied = true;
-      return;
-    }
-  });
-  if (!filedCopied) fail(`Cannot write ${outputFile} file.`.red);
+  // let filedCopied = false;
+  // postfixes.forEach(postfix => {
+  //   if (endsWith(outputFile, postfix)) {
+  //     fs.copySync(filename + postfix, outputFile);
+  //     console.log(`Wrote ${outputFile} okay.`.green);
+  //     filedCopied = true;
+  //     return;
+  //   }
+  // });
+  // if (!filedCopied) fail(`Cannot write ${outputFile} file.`.red);
 
   // python ./bin/emscripten/tools/webidl_binder.py test/simple.idl glue
 }

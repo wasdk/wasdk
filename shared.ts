@@ -64,6 +64,15 @@ COMPILER_ENGINE = NODE_JS
 JS_ENGINES = [NODE_JS]`;
   fs.writeFileSync(EM_CONFIG, str);
 }
+export function appendFilesSync(output: string, input: string [], insertNewLine = false) {
+  let files = input.map(file => fs.readFileSync(file, 'utf8'));
+  files.forEach(file => {
+    fs.appendFileSync(output, file);
+    if (insertNewLine) {
+      fs.appendFileSync(output, "\n");
+    }
+  });
+}
 function element<T>(array: T[], i): T {
   if (i >= 0) return array[i];
   return array[array.length + i];
@@ -124,9 +133,12 @@ export function deleteFileSync(filename: string) {
   filename = wasdkPath(filename);
   rimraf.sync(filename);
 }
-export function createTmpDirectory(): string {
-  return wasdkPath(tmp.dirSync({ template: `${TMP_DIR}/tmp-XXXXXX` }).name);
-}
-export function createTmpFilename(): string {
-  return tmp.fileSync({template: `tmp-XXXXXX`}).name;
+// export function createTmpDirectory(): string {
+//   return wasdkPath(tmp.dirSync({ template: `${TMP_DIR}/tmp-XXXXXX` }).name);
+// }
+export function createTmpFile(): string {
+  let name = tmp.fileSync({template: `${TMP_DIR}/tmp-XXXXXX`}).name;
+  console.log("Generated: : " + name);
+  return name;
+
 }
