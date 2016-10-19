@@ -4,7 +4,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
-import { EMCC, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import { WASDK_DEBUG, EMCC, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',
@@ -89,7 +89,7 @@ function clean() {
 }
 
 function ezCompile() {
-  console.dir(cliArgs);
+  WASDK_DEBUG && console.dir(cliArgs);
   let inputFiles = [path.resolve(cliArgs.input)];
   let tmpInputFile = createTmpFile() + ".cpp";
   appendFilesSync(tmpInputFile, inputFiles);
@@ -111,7 +111,7 @@ function ezCompile() {
   // args.push(["-s", "ONLY_MY_CODE=1"]);
   if (cliArgs.debuginfo) args.push("-g 3");
   args.push(tmpInputFile);
-  let outputFile = path.resolve(cliArgs.output);
+  let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve("a.js");
   args.push(["-o", outputFile]);
   if (glueFile) {
     args.push(["--post-js", glueFile + ".js"]);
@@ -119,7 +119,6 @@ function ezCompile() {
   // console.info(EMCC + " " + args.join(" "));
   res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Compilation error.");
-  // EMCC generates 4 files, copy only he one we need.
   let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
   let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
   let outputFiles = postfixes.map(postfix => filename + postfix);
@@ -134,7 +133,6 @@ function ezCompile() {
   //   }
   // });
   // if (!filedCopied) fail(`Cannot write ${outputFile} file.`.red);
-
   // python ./bin/emscripten/tools/webidl_binder.py test/simple.idl glue
 }
 
