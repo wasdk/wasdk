@@ -12,7 +12,7 @@ var spawnSyncFn = require('child_process').spawnSync;
 export const WASDK_ROOT = path.resolve(path.dirname(path.dirname(__filename)));
 
 export function spawnSync(command: string, args: any [], options?: any): any {
-  // console.info(command + " " + args.join(" "));
+  WASDK_DEBUG && console.error(command + " " + args.join(" "));
   return spawnSyncFn(command, args, options);
 }
 export function pathFromRoot(...pathSegments: string []): string {
@@ -24,6 +24,7 @@ export function wasdkPath(pathSegment: string) {
   return pathFromRoot(pathSegment);
 }
 
+export let WASDK_DEBUG = process.env.WASDK_DEBUG;
 export let EM_CONFIG = pathFromRoot("bin", ".emscripten");
 export let LLVM_ROOT = pathFromRoot("bin", "llvm");
 export let EMSCRIPTEN_ROOT = pathFromRoot("bin", "emscripten");
