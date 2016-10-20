@@ -33,6 +33,7 @@ export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
 export let LIB_ROOT = pathFromRoot("lib");
 
 export let EMCC = pathFromRoot("bin", "emscripten", "emcc");
+export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js");
 export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
 export let TMP_DIR = tmp.dirSync().name; // pathFromRoot(".wasdk-tmp")
 

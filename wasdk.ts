@@ -4,7 +4,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
-import { WASDK_DEBUG, EMCC, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',
@@ -26,8 +26,18 @@ ezParser.addArgument(['input'], { help: 'Input file(s).' });
 let smParser = subparsers.addParser('disassemble', { help: "Disassemble files.", addHelp: true });
 smParser.addArgument(['input'], { help: 'Input .wast/.wasm file.' });
 
+let emccParser = subparsers.addParser('emcc', { help: "Emscripten Compiler", addHelp: true });
+emccParser.addArgument(['args'], { nargs: '...' });
+
+let jsParser = subparsers.addParser('js', { help: "SpiderMonkey Shell", addHelp: true });
+jsParser.addArgument(['args'], { nargs: '...' });
+
 var cliArgs = parser.parseArgs();
 
+WASDK_DEBUG && console.dir(cliArgs);
+
+if (cliArgs.command === "emcc") emcc();
+if (cliArgs.command === "js") js();
 if (cliArgs.command === "sdk") sdk();
 if (cliArgs.command === "ez") ezCompile();
 if (cliArgs.command === "disassemble") disassemble();
@@ -35,7 +45,14 @@ if (cliArgs.command === "disassemble") disassemble();
 function section(name) {
   console.log(name.bold.green.underline);
 }
-
+function js() {
+  let args = cliArgs.args;
+  let res = spawnSync(JS, flatten(args), { stdio: [0, 1, 2] });
+}
+function emcc() {
+  let args = ["--em-config", EM_CONFIG].concat(cliArgs.args);
+  let res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
+}
 function sdk() {
   if (cliArgs.clean) clean();
   if (cliArgs.install) install();
@@ -65,8 +82,6 @@ function install() {
   decompressFileSync(filename, BINARYEN_ROOT, 0);
 
   section("Installing Spidermonkey");
-  // "http://areweflashyet.com/wasm/jsshell-latest.tar.gz"
-  // url = "http://areweflashyet.com/wasm/jsshell-latest.tar.gz";
   if (process.platform === 'darwin') {
     url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip";
   } else if (process.platform === 'linux') {
@@ -89,7 +104,6 @@ function clean() {
 }
 
 function ezCompile() {
-  WASDK_DEBUG && console.dir(cliArgs);
   let inputFiles = [path.resolve(cliArgs.input)];
   let tmpInputFile = createTmpFile() + ".cpp";
   appendFilesSync(tmpInputFile, inputFiles);
@@ -139,6 +153,6 @@ function ezCompile() {
 function disassemble() {
   let input = path.resolve(cliArgs.input);
   let args = flatten(["./dist/wasm-sm.js", input]);
-  let res = spawnSync(path.join(SPIDERMONKEY_ROOT, "js"), args, { stdio: [0, 1, 2] });
+  let res = spawnSync(JS, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Disassembly error.");
 }
