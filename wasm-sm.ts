@@ -45,6 +45,11 @@ class WasmParser {
     this.position++;
     return b & 0x7F;
   }
+  readBytes(length: number) {
+    let bytes = this.bytes.subarray(this.position, this.position + length);
+    this.position += length;
+    return bytes;
+  }
   readVarUint32() {
     var n = 0, shift = 0, p = this.position, bytes = this.bytes;
     var b = bytes[p++];
@@ -88,6 +93,7 @@ class WasmUserSection extends WasmSection {
     this.name = this.readNames(1)[0];
   }
 }
+
 class WasmNameSection extends WasmUserSection {
   functionNames: string [] = [];
   functionLocalNames: string [][] = [];
@@ -101,6 +107,21 @@ class WasmNameSection extends WasmUserSection {
     for (let i = 0; i < functionCount; i++) {
       this.functionNames.push(this.readNames(1)[0]);
       this.functionLocalNames.push(this.readNames(this.readVarUint32()));
+    }
+  }
+}
+
+class WasmCodeSection extends WasmSection {
+  functionBodies: Uint8Array [] = [];
+  constructor(offset: number, bytes: Uint8Array) {
+    super(offset, bytes);
+  }
+  parse() {
+    this.parseHeader();
+    let functionCount = this.readVarUint32();
+    for (let i = 0; i < functionCount; i++) {
+      let size = this.readVarUint32();
+      this.functionBodies.push(this.readBytes(size));
     }
   }
 }
@@ -145,6 +166,9 @@ class Wasm extends WasmParser {
           section = new WasmNameSection(offset, this.bytes);
           section.parse();
         }
+      } else if (id === SectionID.Code) {
+        section = new WasmCodeSection(offset, this.bytes);
+        section.parse();
       }
       if (!section) section = new WasmSection(offset, this.bytes);
       this.sections.push(section);
@@ -163,13 +187,8 @@ if (scriptArgs[0].endsWith(".wast")) {
 }
 let m = new WebAssembly.Module(wasm);
 let c = wasmExtractCode(m);
-
 let wasmFile = new Wasm(wasm);
 wasmFile.parse();
-
-// print(JSON.stringify(m, null, 2));
-// print(JSON.stringify(c.segments, null, 2));
-// print(JSON.stringify(c, null, 2));
 
 var cs = new capstone.Cs(capstone.ARCH_X86, capstone.MODE_64);
 
@@ -183,6 +202,24 @@ function padRight(s: string, l: number, c: string) {
 }
 
 let nameSection = wasmFile.findSection(SectionID.User, "name") as WasmNameSection;
+
+function printFunctionMetrics() {
+  let codeSection = wasmFile.findSection(SectionID.Code) as WasmCodeSection;
+  let totalCodeSize = 0;
+  let pairs = [];
+  for (let i = 0; i < codeSection.functionBodies.length; i++) {
+    let size = codeSection.functionBodies[i].length;
+    totalCodeSize += size;
+    let name = nameSection ? nameSection.functionNames[i] : `Func ${i}:`;
+    pairs.push([name, size]);
+  }
+  console.log("Total Code Size: " + bytesToSize(totalCodeSize));
+  pairs = pairs.sort((a, b) => a[1] < b[1]);
+  pairs.forEach(pair => {
+    console.log(`${padRight((pair[1] / totalCodeSize * 100).toFixed(2) + "%", 10, ' ')} ${padRight(pair[1].toString(), 10, ' ')} ${pair[0]}`);
+  });
+}
+printFunctionMetrics();
 
 var x86JumpInstructions = [
   "jmp", "ja", "jae", "jb", "jbe", "jc", "je", "jg", "jge", "jl", "jle", "jna", "jnae",
@@ -200,6 +237,13 @@ function toAddress(n) {
     s = "0" + s;
   }
   return "0x" + s;
+}
+
+function bytesToSize(bytes) {
+  var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  if (bytes == 0) return '0 Byte';
+  var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
 }
 
 function toBytes(a) {
@@ -223,6 +267,7 @@ c.segments.forEach(s => {
 });
 
 function printInstructions(instructions: any []) {
+  var pretty = true;
   var basicBlocks = {};
   instructions.forEach(function(instr, i) {
     assemblyInstructionsByAddress[instr.address] = instr;
@@ -239,105 +284,22 @@ function printInstructions(instructions: any []) {
   });
   instructions.forEach(function(instr) {
     let s = "";
-    if (basicBlocks[instr.address]) {
-      s += " " + padRight(toAddress(instr.address) + ":", 39, " ");
-      if (basicBlocks[instr.address].length > 0) {
-        s += "; " + toAddress(instr.address) + " from: [" + basicBlocks[instr.address].map(toAddress).join(", ") + "]";
+    if (pretty) {
+      if (basicBlocks[instr.address]) {
+        s += " " + padRight(toAddress(instr.address) + ":", 51, " ");
+        if (basicBlocks[instr.address].length > 0) {
+          s += "; " + toAddress(instr.address) + " from: [" + basicBlocks[instr.address].map(toAddress).join(", ") + "]";
+        }
+        s += "\n";
       }
-      s += "\n";
+      s += "  " + padRight(instr.mnemonic + " " + instr.op_str, 50, " ");
+      s += "; " + toAddress(instr.address) + " " + toBytes(instr.bytes);
+    } else {
+      s = padRight(instr.mnemonic + " " + instr.op_str, 50, " ") + " " + toBytes(instr.bytes);
     }
-    s += "  " + padRight(instr.mnemonic + " " + instr.op_str, 38, " ");
-    s += "; " + toAddress(instr.address) + " " + toBytes(instr.bytes);
     console.log(s);
   });
 }
 
 cs.delete();
-
-
-  // function getWasmDebugInfo(wasmBytes) {
-  //   function readString(len) {
-  //     var ch = wasmBytes.subarray(pos, pos + len);
-  //     pos += len;
-  //     return String.fromCharCode.apply(null, ch);
-  //   }
-
-  //   var pos = 0;
-  //   if (readUint32() != 0x6d736100) {
-  //     throw new Error('WASM: Invalid magic number');
-  //   }
-  //   if (readUint32() != 10) {
-  //     throw new Error('WASM: Invalid version number');
-  //   }
-  //   var dbgTablesStart = -1, dbgTablesEnd;
-  //   var functionsStart = -1, functionsEnd;
-  //   while (pos < wasmBytes.length) {
-  //     var sectionSize = readVarUint32();
-  //     var sectionEnd = pos + sectionSize;
-  //     var id = readString(readVarUint32());
-  //     if (id === "_experiment_dbg_tables") {
-  //       dbgTablesStart = pos;
-  //       dbgTablesEnd = sectionEnd;
-  //     } else if (id === "function_bodies") {
-  //       functionsStart = pos;
-  //       functionsEnd = sectionEnd;
-  //     }
-  //     pos = sectionEnd;
-  //   }
-  //   if (dbgTablesStart < 0) {
-  //     return null;
-  //   }
-  //   var tables = [];
-  //   pos = dbgTablesStart;
-  //   var count = readVarUint32();
-  //   while (count--) {
-  //     var len = readVarUint32();
-  //     tables.push(String.fromCharCode.apply(null, wasmBytes.subarray(pos, pos + len)));
-  //     pos += len;
-  //   }
-  //   return tables;
-
-// var instructions = cs.disasm(csBuffer, region.entry);
-// var basicBlocks = {};
-// instructions.forEach(function(instr, i) {
-// }
-// print(cs);
-
-// print(Object.keys(c.segments));
-// print(m);
-// wasmBinaryToText(wasm);
-// let m = wasmEval(wasm);
-
-// declare var wasmTextToBinary: any;
-// declare var WebAssembly: any;
-// declare var read: any;
-// declare var scriptArgs: any;
-
-// function wasmEvalText(str: string, imports) {
-//     let binary = wasmTextToBinary(str);
-//     let valid = WebAssembly.validate(binary);
-
-//     let m;
-//     try {
-//       m = new WebAssembly.Module(binary);
-//     } catch(e) {
-//       throw e;
-//     }
-
-//     return new WebAssembly.Instance(m, imports);
-// }
-
-// function evalWasm(wasm, imports) {
-//   let m = new WebAssembly.Module(wasm);
-//   return new WebAssembly.Instance(m, imports);
-// }
-
-// let wast = read(scriptArgs[0]);
-// let i = wasmEvalText(wast, {});
-// // print(i.exports.Point_get_x);
-
-// // print(wasm);
-// // let valid = WebAssembly.validate(wasm);
-
-// // wasmEvalText(wast, {});
 
