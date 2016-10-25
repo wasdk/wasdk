@@ -122,6 +122,11 @@ function ezCompile() {
     appendFilesSync(tmpInputFile, [glueFile + ".cpp"]);
   }
   args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
+  args.push(["-s", "NO_FILESYSTEM=1"]);
+  args.push(["-s", "NO_EXIT_RUNTIME=1"]);
+  args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
+  args.push(["-s", "VERBOSE=1"]);
+
   // args.push(["-s", "ONLY_MY_CODE=1"]);
   if (cliArgs.debuginfo) args.push("-g 3");
   args.push(tmpInputFile);
