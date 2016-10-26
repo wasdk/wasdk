@@ -34,10 +34,12 @@ export let LIB_ROOT = pathFromRoot("lib");
 
 export let EMCC = pathFromRoot("bin", "emscripten", "emcc");
 export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js");
-export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
-export let TMP_DIR = tmp.dirSync().name; // pathFromRoot(".wasdk-tmp")
 
-console.log(`TMP_DIR = ${TMP_DIR}`);
+export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
+// export let TMP_DIR = tmp.dirSync().name;
+export let TMP_DIR = pathFromRoot(".wasdk-tmp");
+
+// console.log(`TMP_DIR = ${TMP_DIR}`);
 
 export function fail(message) {
   throw new Error(message)
@@ -139,4 +141,35 @@ export function deleteFileSync(filename: string) {
 }
 export function createTmpFile(): string {
   return tmp.fileSync({template: `${TMP_DIR}/tmp-XXXXXX`}).name;
+}
+
+export class IndentingWriter {
+  w: fs.WriteStream;
+  i: number;
+  constructor(path: string) {
+    this.i = 0;
+    this.w = fs.createWriteStream(path);
+  }
+  getIndent(): string {
+    let s = "";
+    let i = 0;
+    while (i++ < this.i) {
+      s += "  ";
+    }
+    return s;
+  }
+  writeLn(s: string) {
+    this.w.write(this.getIndent() + s + "\n");
+  }
+  enter(s: string) {
+    this.writeLn(s);
+    this.i++;
+  }
+  leave(s: string) {
+    this.i--;
+    this.writeLn(s);
+  }
+  end() {
+    this.w.end();
+  }
 }

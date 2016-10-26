@@ -1,0 +1,6 @@
+interface Module {
+  i32 malloc(i32 size);
+  void free(i32 ptr);
+  i32 calloc(i32 nmemb, i32 size);
+  i32 realloc(i32 ptr, i32 size);
+};

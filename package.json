@@ -26,7 +26,8 @@
     "log-symbols": "^1.0.2",
     "mkdirp": "^0.5.1",
     "rimraf": "^2.5.4",
-    "tmp": "0.0.29"
+    "tmp": "0.0.29",
+    "webidl2": "^2.0.11"
   },
   "devDependencies": {
     "typescript": "^2.0.3",

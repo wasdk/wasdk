@@ -5,6 +5,7 @@ import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
 import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import { IDL } from "./idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',
@@ -103,57 +104,125 @@ function clean() {
   deleteFileSync(EMSCRIPTEN_ROOT);
 }
 
-function ezCompile() {
-  let inputFiles = [path.resolve(cliArgs.input)];
-  let tmpInputFile = createTmpFile() + ".cpp";
-  appendFilesSync(tmpInputFile, inputFiles);
+interface Config {
+  files: string [];
+  interface?: string;
+  options: {
+    EXPORTED_RUNTIME_METHODS: string [],
+    EXPORTED_FUNCTIONS: string []
+  }
+}
+function resolveConfig(config: Config, configPath: string = null) {
+  let configRoot = null;
+  if (configPath) {
+    configRoot = path.resolve(path.dirname(configPath));
+  }
+  function resolvePath(p: string) {
+    if (!p) return null;
+    if (path.isAbsolute(p)) return p;
+    if (configRoot) return path.resolve(path.join(configRoot, p));
+    return path.resolve(p);
+  }
+  config.files = config.files.map(resolvePath);
+  config.interface = resolvePath(config.interface);
 
+  if (config.interface) {
+    let idl = IDL.parse(fs.readFileSync(config.interface).toString());
+    let moduleInterface = IDL.getInterfaceByName("Module", idl);
+    if (!moduleInterface) fail("WebIDL file must declare a Module interface.");
+    let members = moduleInterface.members.filter(m => m.type === "operation").map(m => m.name);
+    config.options.EXPORTED_FUNCTIONS = config.options.EXPORTED_FUNCTIONS.concat(members.map(m => "_" + m));
+
+    config.options.EXPORTED_FUNCTIONS.push("__growWasmMemory");
+  }
+}
+function quoteStringArray(a: string []): string {
+    return `[${a.map(x => `'${x}'`).join(", ")}]`;
+  }
+function ezCompile() {
+  let config: Config = {
+    files: [],
+    interface: null,
+    options: {
+      EXPORTED_RUNTIME_METHODS: [],
+      EXPORTED_FUNCTIONS: []
+    }
+  };
+  if (path.extname(cliArgs.input) === ".json") {
+    config = JSON.parse(fs.readFileSync(cliArgs.input, 'utf8'));
+    resolveConfig(config, cliArgs.input);
+  } else {
+    config.files = [cliArgs.input];
+    resolveConfig(config);
+  }
+
+  let inputFiles = config.files.map(file => path.resolve(file));
   let res, args, glueFile;
-  if (cliArgs.idl) {
-    let idlFile = path.resolve(cliArgs.idl);
-    glueFile = createTmpFile();
-    args = [WEBIDL_BINDER, idlFile, glueFile];
-    res = spawnSync("python", args, { stdio: [0, 1, 2] });
-    if (res.status !== 0) fail("WebIDL binding error.");
-    if (!fs.existsSync(glueFile + ".cpp") || !fs.existsSync(glueFile + ".js"))
-      fail("WebIDL binding error.");
-  }
-  if (glueFile) {
-    appendFilesSync(tmpInputFile, [glueFile + ".cpp"]);
-  }
   args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
   args.push(["-s", "NO_FILESYSTEM=1"]);
   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
   args.push(["-s", "VERBOSE=1"]);
+  args.push(["-s", "BINARYEN_IMPRECISE=1"]);
+  args.push(["-s", "ALLOW_MEMORY_GROWTH=1"]);
+  args.push(["-s", "RELOCATABLE=1"]);
 
-  // args.push(["-s", "ONLY_MY_CODE=1"]);
+  args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
+  args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
+
   if (cliArgs.debuginfo) args.push("-g 3");
-  args.push(tmpInputFile);
+  args.push(inputFiles);
   let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve("a.js");
   args.push(["-o", outputFile]);
-  if (glueFile) {
-    args.push(["--post-js", glueFile + ".js"]);
-  }
-  // console.info(EMCC + " " + args.join(" "));
-  res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
+  args = flatten(args);
+  console.info(EMCC + " " + args.join(" "));
+  res = spawnSync(EMCC, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Compilation error.");
   let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
   let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
   let outputFiles = postfixes.map(postfix => filename + postfix);
   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
-  // let filedCopied = false;
-  // postfixes.forEach(postfix => {
-  //   if (endsWith(outputFile, postfix)) {
-  //     fs.copySync(filename + postfix, outputFile);
-  //     console.log(`Wrote ${outputFile} okay.`.green);
-  //     filedCopied = true;
-  //     return;
-  //   }
-  // });
-  // if (!filedCopied) fail(`Cannot write ${outputFile} file.`.red);
-  // python ./bin/emscripten/tools/webidl_binder.py test/simple.idl glue
 }
+
+// function ezCompile() {
+//   let inputFiles = [path.resolve(cliArgs.input)];
+//   let tmpInputFile = createTmpFile() + ".cpp";
+//   appendFilesSync(tmpInputFile, inputFiles);
+
+//   let res, args, glueFile;
+//   if (cliArgs.idl) {
+//     let idlFile = path.resolve(cliArgs.idl);
+//     glueFile = createTmpFile();
+//     args = [WEBIDL_BINDER, idlFile, glueFile];
+//     res = spawnSync("python", args, { stdio: [0, 1, 2] });
+//     if (res.status !== 0) fail("WebIDL binding error.");
+//     if (!fs.existsSync(glueFile + ".cpp") || !fs.existsSync(glueFile + ".js"))
+//       fail("WebIDL binding error.");
+//   }
+//   if (glueFile) {
+//     appendFilesSync(tmpInputFile, [glueFile + ".cpp"]);
+//   }
+//   args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
+//   args.push(["-s", "NO_FILESYSTEM=1"]);
+//   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
+//   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
+//   args.push(["-s", "VERBOSE=1"]);
+
+//   if (cliArgs.debuginfo) args.push("-g 3");
+//   args.push(tmpInputFile);
+//   let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve("a.js");
+//   args.push(["-o", outputFile]);
+//   if (glueFile) {
+//     args.push(["--post-js", glueFile + ".js"]);
+//   }
+//   // console.info(EMCC + " " + args.join(" "));
+//   res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
+//   if (res.status !== 0) fail("Compilation error.");
+//   let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
+//   let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
+//   let outputFiles = postfixes.map(postfix => filename + postfix);
+//   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
+// }
 
 function disassemble() {
   let input = path.resolve(cliArgs.input);

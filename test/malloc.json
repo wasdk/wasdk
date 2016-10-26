@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+
+    },
+    "interface": "malloc.idl",
+    "files": [
+        "malloc.cpp"
+    ],
+    "options": {
+        "EXPORTED_RUNTIME_METHODS": [],
+        "EXPORTED_FUNCTIONS": []
+    }
+}
