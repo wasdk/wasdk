@@ -214,7 +214,7 @@ function printFunctionMetrics() {
     pairs.push([name, size]);
   }
   console.log("Total Code Size: " + bytesToSize(totalCodeSize));
-  pairs = pairs.sort((a, b) => a[1] < b[1]);
+  pairs = pairs.sort((a, b) => a[1] < b[1] ? -1 : a[1] == b[1] ? 0 : 1);
   pairs.forEach(pair => {
     console.log(`${padRight((pair[1] / totalCodeSize * 100).toFixed(2) + "%", 10, ' ')} ${padRight(pair[1].toString(), 10, ' ')} ${pair[0]}`);
   });
@@ -239,11 +239,11 @@ function toAddress(n) {
   return "0x" + s;
 }
 
-function bytesToSize(bytes) {
+function bytesToSize(bytes: number): string {
   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   if (bytes == 0) return '0 Byte';
-  var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+  var i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
 }
 
 function toBytes(a) {
@@ -260,7 +260,7 @@ c.segments.forEach(s => {
   if (nameSection) {
     console.log(nameSection.functionNames[s.funcDefIndex] + ":");
   } else {
-    console.log(`Func ${s.funcDefIndex}:`]);
+    console.log(`Func ${s.funcDefIndex}:`);
   }
   var instructions = cs.disasm(code, begin);
   printInstructions(instructions);
