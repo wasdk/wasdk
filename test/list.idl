@@ -1,0 +1,4 @@
+interface Module {
+  void init(Node head, i32 data);
+  void addNode(Node head, i32 data);
+};

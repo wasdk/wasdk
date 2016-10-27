@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+
+    },
+    "interface": "list.idl",
+    "files": [
+        "list.cpp"
+    ],
+    "options": {
+        "EXPORTED_RUNTIME_METHODS": [],
+        "EXPORTED_FUNCTIONS": []
+    }
+}

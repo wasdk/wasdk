@@ -20,26 +20,17 @@ module WebAssembly {
 }
 
 let wasm: any;
-if (scriptArgs[0].endsWith(".wast")) {
-  wasm = wasmTextToBinary(read(scriptArgs[0]));
-} else {
-  wasm = read(scriptArgs[0], "binary");
-}
-let m = new WebAssembly.Module(wasm);
 
 let INITIAL_MEMORY = 16 * 1024 * 1024;
 let MAXIMUM_MEMORY = 32 * 1024 * 1024;
 let WASM_PAGE_SIZE = 64 * 1024;
 let TABLE_SIZE = 0;
 let DYNAMICTOP_PTR = 0;
-let STATIC_BASE = 8;
 
 let memory = new WebAssembly.Memory({
   initial: INITIAL_MEMORY / WASM_PAGE_SIZE,
   // maximum: MAXIMUM_MEMORY / WASM_PAGE_SIZE
 });
-
-
 
 
 let buffer = memory.buffer;
@@ -53,30 +44,27 @@ let HEAPF32 = new Float32Array(buffer);
 let HEAPF64 = new Float64Array(buffer);
 
 /**
- * +----------------------------+
- * | DYNAMICTOP_PTR             | 0
- * +----------------------------+
- *
- *            Module A
- * +----------------------------+---+ <-- STATIC_BASE
- * |                            |   |
- * |                            |   |
- * +----------------------------+   | <-- STACKTOP
- * |           . . .            |   |
- * |                            |   V
- *
- *            Module B
- * +----------------------------+---+ <-- STATIC_BASE
- * |                            |   |
- * |                            |   |
- * +----------------------------+   | <-- STACKTOP
- * |           . . .            |   |
- * |                            |   V
- *
- *
- * +----------------------------+ <-- DYNAMICTOP
- * |           . . .            |
- * +----------------------------+ <-- TOTAL_MEMORY
+
++--------------------------------------+
+|            DYNAMICTOP_PTR            |
++--------------------------------------+
+|             Root Module              |
+|  +-----------------------------------+ <---------  Static Base
+|  |              Static               |
+|  +-----------------------------------+ <---------  Stack Base
+|  |               Stack               |
++--------------------------------------+ <---------  Stack Top
+|             Malloc Area              |
+|  +-----------------------------------+
+|  |             Module 1              |
+|  +-----------------------------------+
+|  |             Module n              |
+|  +-----------------------------------+
+|  |                ...                |
+|  +-----------------------------------+
+|                                      |
++--------------------------------------+ <---------  Dynamic Top
+
  */
 
 HEAP32[DYNAMICTOP_PTR >> 2] = 1024 * 2;
@@ -152,7 +140,7 @@ class Module {
 }
 
 class MallocModule extends Module {
-  constructor(module: WebAssembly.Module, memory: WebAssembly.Memory, table: WebAssembly.Table, options = new ModuleOptions()) {
+  constructor(module: WebAssembly.Module, memory: WebAssembly.Memory, table: WebAssembly.Table, options: ModuleOptions) {
     super(module, memory, table, options);
   }
   malloc(size: number) {
@@ -160,12 +148,18 @@ class MallocModule extends Module {
   }
 }
 
+if (scriptArgs[0].endsWith(".wast")) {
+  wasm = wasmTextToBinary(read(scriptArgs[0]));
+} else {
+  wasm = read(scriptArgs[0], "binary");
+}
+
+let m = new WebAssembly.Module(wasm);
+
 let table = new WebAssembly.Table({ initial: TABLE_SIZE, maximum: TABLE_SIZE, element: 'anyfunc' });
 let rootModule = new MallocModule(m, memory, table, new ModuleOptions(1024));
 
-
 // Create a root malloc modules and some child modules.
-
 
 let modules = [];
 
