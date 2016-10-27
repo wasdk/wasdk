@@ -2,3 +2,5 @@ bin/
 dist/
 .wasdk-tmp
 tools
+node_modules/
+npm-debug.log
