@@ -1,23 +1,4 @@
-declare let load: any;
-declare let read: any;
-declare var scriptArgs: any;
-declare let wasmTextToBinary: any;
-declare let print: any;
-
-module WebAssembly {
-  export interface Memory {
-    buffer: ArrayBuffer;
-  }
-  export interface Module {
-
-  }
-  export interface Instance {
-    exports: {};
-  }
-  export interface Table {
-
-  }
-}
+/// <reference path="./globals.d.ts"/>
 
 let wasm: any;
 
@@ -26,6 +7,7 @@ let MAXIMUM_MEMORY = 32 * 1024 * 1024;
 let WASM_PAGE_SIZE = 64 * 1024;
 let TABLE_SIZE = 0;
 let DYNAMICTOP_PTR = 0;
+
 
 let memory = new WebAssembly.Memory({
   initial: INITIAL_MEMORY / WASM_PAGE_SIZE,
@@ -65,7 +47,7 @@ let HEAPF64 = new Float64Array(buffer);
 |                                      |
 +--------------------------------------+ <---------  Dynamic Top
 
- */
+*/
 
 HEAP32[DYNAMICTOP_PTR >> 2] = 1024 * 2;
 
@@ -84,13 +66,13 @@ class ModuleOptions {
 }
 
 class Module {
-  module: WebAssembly.Module = null;
-  memory: WebAssembly.Memory = null;
-  table: WebAssembly.Table = null;
-  instance: WebAssembly.Instance = null;
+  module: WebAssemblyModule = null;
+  memory: WebAssemblyMemory = null;
+  table: WebAssemblyTable = null;
+  instance: WebAssemblyInstance = null;
   environment: any;
   options: ModuleOptions;
-  constructor(module: WebAssembly.Module, memory: WebAssembly.Memory, table: WebAssembly.Table, options: ModuleOptions) {
+  constructor(module: WebAssemblyModule, memory: WebAssemblyMemory, table: WebAssemblyTable, options: ModuleOptions) {
     this.module = module;
     this.memory = memory;
     this.table = table;
@@ -129,10 +111,10 @@ class Module {
     }
   }
   nop(s: string) {
-    print("NOP: " + s);
+    console.log("NOP: " + s);
   }
   enlargeMemory(size) {
-    print("enlargeMemory: " + size);
+    console.log("enlargeMemory: " + size);
   }
   getTotalMemory() {
     return this.memory.buffer.byteLength;
@@ -140,7 +122,7 @@ class Module {
 }
 
 class MallocModule extends Module {
-  constructor(module: WebAssembly.Module, memory: WebAssembly.Memory, table: WebAssembly.Table, options: ModuleOptions) {
+  constructor(module: WebAssemblyModule, memory: WebAssemblyMemory, table: WebAssemblyTable, options: ModuleOptions) {
     super(module, memory, table, options);
   }
   malloc(size: number) {
@@ -172,9 +154,9 @@ for (let i = 0; i < 16; i++) {
 
 for (let j = 0; j < 64; j++) {
   modules.forEach((m, i) => {
-    print("Module " + i);
+    console.log("Module " + i);
     for (let k = 0; k < 16; k++) {
-      print(" " + m.malloc(12));
+      console.log(" " + m.malloc(12));
     }
   });
 }

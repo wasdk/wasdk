@@ -1,8 +1,5 @@
-declare let load: any;
-declare let wasmTextToBinary: any;
-declare let read: any;
-declare let WebAssembly: any;
-declare let wasmExtractCode: any;
+/// <reference path="./globals.d.ts"/>
+
 declare let capstone: any;
 
 load("lib/capstone.x86.min.js");
@@ -302,4 +299,3 @@ function printInstructions(instructions: any []) {
 }
 
 cs.delete();
-

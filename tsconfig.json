@@ -10,8 +10,6 @@
     "files": [
         "get-tools.ts",
         "wasm-bind.ts",
-        "wasm-sm.ts",
-        "wasm-shell.ts",
         "shared.ts",
         "idl.ts",
         "wasdk.ts",

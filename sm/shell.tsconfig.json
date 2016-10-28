@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "outDir": "../dist/",
+        "sourceMap": true
+    },
+    "files": [
+        "wasm-shell.ts"
+    ]
+}

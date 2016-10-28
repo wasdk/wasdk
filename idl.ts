@@ -75,8 +75,15 @@ export module IDL {
     return v.map(doArgument).join(", ");
   }
 
+  function find<T>(array: Array<T>, predicate: (value: T) => boolean): T {
+    for (let i = 0; i < array.length; i++) {
+      if (predicate(array[i])) return array[i];
+    }
+    return null;
+  }
+
   export function getInterfaceByName(name: string, interfaces: IDLInterface []): IDLInterface {
-    return interfaces.find(i => i.name === name);
+    return find(interfaces, i => i.name === name);
   }
 }
 
