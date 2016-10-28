@@ -9,7 +9,7 @@
     "install": "node ./dist/wasdk.js sdk --install"
   },
   "bin": {
-    "wasdk": "node ./dist/wasdk.js"
+    "wasdk": "./dist/wasdk.js"
   },
   "author": "",
   "license": "ISC",
