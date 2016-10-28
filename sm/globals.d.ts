@@ -4,6 +4,9 @@ declare var scriptArgs: any;
 declare let wasmTextToBinary: any;
 declare let wasmExtractCode: any;
 
+// Created From:
+// https://hg.mozilla.org/mozilla-central/file/tip/js/src/jit-test/tests/wasm/jsapi.js
+
 declare interface WebAssemblyMemory {
   buffer: ArrayBuffer;
 }

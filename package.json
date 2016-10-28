@@ -6,10 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node_modules/.bin/tsc && node_modules/.bin/tsc -p sm/shell.tsconfig.json && node_modules/.bin/tsc -p sm/sm.tsconfig.json",
-    "install": "./dist/wasdk.js sdk --install"
+    "install": "node ./dist/wasdk.js sdk --install"
   },
   "bin": {
-    "wasdk": "./dist/wasdk.js"
+    "wasdk": "node ./dist/wasdk.js"
   },
   "author": "",
   "license": "ISC",
