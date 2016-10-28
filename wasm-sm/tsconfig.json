@@ -1,7 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "../dist/",
-        "sourceMap": true
+        "moduleResolution": "classic",
+        "module": "none",
+        "types": []
     },
     "files": [
         "wasm-sm.ts"
