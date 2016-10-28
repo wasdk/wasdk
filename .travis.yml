@@ -3,6 +3,5 @@ node_js:
   - "6.1"
 
 script:
-  - npm run build
   - npm install
   - npm test
