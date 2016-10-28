@@ -16,6 +16,7 @@ let subparsers = parser.addSubparsers({ title: 'Commands', dest: "command" });
 
 let sdkParser = subparsers.addParser('sdk', { addHelp: true });
 sdkParser.addArgument(['--install'], { action: 'storeTrue', help: 'Install SDK' });
+sdkParser.addArgument(['--test'], { action: 'storeTrue', help: 'Test SDK' });
 sdkParser.addArgument(['--clean'], { action: 'storeTrue', help: 'Clean SDK' });
 
 let ezParser = subparsers.addParser('ez', { help: "Compile .c/.cpp files.", addHelp: true });
@@ -57,6 +58,7 @@ function emcc() {
 function sdk() {
   if (cliArgs.clean) clean();
   if (cliArgs.install) install();
+  if (cliArgs.test) test();
 }
 function install() {
   let url, filename;
@@ -229,4 +231,8 @@ function disassemble() {
   let args = flatten(["./dist/wasm-sm.js", input]);
   let res = spawnSync(JS, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Disassembly error.");
+}
+
+function test() {
+  // fail("No Tests");
 }
