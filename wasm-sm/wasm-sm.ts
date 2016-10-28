@@ -148,7 +148,7 @@ class Wasm extends WasmParser {
     if (this.readUint32() != 0x6d736100) {
       throw new Error('WASM: Invalid magic number');
     }
-    if (this.readUint32() != 12) {
+    if (this.readUint32() != 13) {
       throw new Error('WASM: Invalid version number');
     }
     this.sections = [];
@@ -250,7 +250,7 @@ function toBytes(a) {
 let assemblyInstructionsByAddress = Object.create(null);
 
 c.segments.forEach(s => {
-  if (!s.funcDefIndex) return;
+  if (s.funcDefIndex === undefined) return;
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
   let code = c.code.subarray(begin, end);
