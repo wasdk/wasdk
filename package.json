@@ -15,7 +15,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mbebenita/wasdk"
+    "url": "https://github.com/yurydelendik/wasdk"
   },
   "dependencies": {
     "argparse": "^1.0.9",
