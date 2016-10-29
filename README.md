@@ -35,6 +35,26 @@ wasdk sdk --install
 wasdk sdk --clean
 ```
 
+### Compiling Modules
+
+```
+wasdk ez test/malloc.json -o malloc.js
+```
+
+This producs several files:
+  - `malloc.asm.js`: asm.js code
+  - `malloc.wasm`: WebAssembly Binary
+  - `malloc.wast` WebAssembly Text
+  - `malloc.js`: Node / Browser runtime environment.
+
+### Running Modules
+
+```
+wasdk js dist/wasm-shell.js malloc.wasm
+```
+
+This creates a lightweight WebAssembly environemnt and runs the `malloc.wasm` file. At the moment,
+this only works with the `malloc.wasm` file.
 
 ### Viewing WebAssembly Compiled Machine Code
 
