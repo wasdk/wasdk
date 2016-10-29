@@ -234,5 +234,10 @@ function disassemble() {
 }
 
 function test() {
-  // fail("No Tests");
+  let input = path.resolve("test/universe.wast");
+  let args = flatten(["./dist/wasm-sm.js", input]);
+  let res = spawnSync(JS, args);
+  if (res.status !== 0) fail("Disassembly error.");
+  let out = res.stdout.toString();
+  if (out.indexOf("0x2a") < 0) fail("Can't find 42.");
 }
