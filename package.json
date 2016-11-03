@@ -7,6 +7,7 @@
     "test": "node ./dist/wasdk.js sdk --test",
     "build": "node_modules/.bin/tsc && node_modules/.bin/tsc -p wasm-sm/tsconfig.json && node_modules/.bin/tsc -p wasm-shell/tsconfig.json",
     "postinstall": "node ./dist/wasdk.js sdk --install",
+    "installdeps": "npm install --ignore-scripts",
     "clean": "rm -rf .wasdk-tmp/ bin/ lib/ node_modules/"
   },
   "bin": {
