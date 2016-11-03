@@ -1,4 +1,19 @@
 #! /usr/bin/env node
+/*
+ * Copyright 2016 Mozilla Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -61,40 +76,35 @@ function sdk() {
   if (cliArgs.test) test();
 }
 function install() {
+  var thirdpartyConfigPath = process.env.WASDK_3PARTY ||
+                             path.join(__dirname, "..", "thirdparty.json");
+  let thirdpartyConfig = JSON.parse(fs.readFileSync(thirdpartyConfigPath).toString());
   let url, filename;
-  if (process.platform !== "darwin" && process.platform !== "linux") fail(`Platform ${process.platform} not supported.`);
+  if (process.platform !== "darwin" && process.platform !== "linux")
+    fail(`Platform ${process.platform} not supported.`);
 
-  // Emscripten is platform independent
   section("Installing Emscripten");
-  url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz";
+  url = thirdpartyConfig.all.emscripten;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, EMSCRIPTEN_ROOT, 1);
 
   section("Installing LLVM");
-  if (process.platform === 'darwin') {
-    url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/osx_64bit/emscripten-llvm-latest.tar.gz";
-  } else if (process.platform === 'linux') {
-    url = "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/linux_64bit/emscripten-llvm-latest.tar.gz";
-  }
+  url = thirdpartyConfig[process.platform].llvm;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, LLVM_ROOT, 1);
 
   section("Installing Binaryen");
-  url = "http://areweflashyet.com/wasm/binaryen-latest.tar.gz";
+  url = thirdpartyConfig.all.binaryen;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, BINARYEN_ROOT, 0);
 
   section("Installing Spidermonkey");
-  if (process.platform === 'darwin') {
-    url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip";
-  } else if (process.platform === 'linux') {
-    url = "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip";
-  }
+  url = thirdpartyConfig[process.platform].spidermonkey;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, SPIDERMONKEY_ROOT, 0);
 
   section("Installing Libs")
-  url = "http://areweflashyet.com/wasm/capstone.x86.min.js.tar.gz";
+  url = thirdpartyConfig.all.capstone;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, LIB_ROOT, 0);
 
@@ -228,14 +238,15 @@ function ezCompile() {
 
 function disassemble() {
   let input = path.resolve(cliArgs.input);
-  let args = flatten(["./dist/wasm-sm.js", input]);
+  let args = flatten([path.join(__dirname, "wasm-sm.js"), input]);
   let res = spawnSync(JS, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Disassembly error.");
 }
 
 function test() {
   let input = path.resolve("test/universe.wast");
-  let args = flatten(["./dist/wasm-sm.js", input]);
+  let args = flatten([path.join(__dirname, "wasm-sm.js"), input]);
+  console.log(args);
   let res = spawnSync(JS, args);
   if (res.status !== 0) fail("Disassembly error.");
   let out = res.stdout.toString();

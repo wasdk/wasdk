@@ -13,6 +13,7 @@
         "shared.ts",
         "idl.ts",
         "wasdk.ts",
+        "unpack.ts",
         "download.ts"
     ]
 }

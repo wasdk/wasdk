@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 Mozilla Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import * as fs from "fs";
 import * as tmp from "tmp";
 import * as path from "path";
@@ -122,17 +138,11 @@ function spawnDownloadFileSync(url: string, filename: string): boolean {
 export function decompressFileSync(filename: string, dstPath: string, strip = 0): boolean {
   dstPath = wasdkPath(dstPath);
   mkdirp.sync(dstPath);
-  // console.log(`Unpacking ${filename} to ${dstPath}`);
   process.stdout.write(`Unpacking`);
-  let res;
-  if (endsWith(filename, ".zip")) {
-    res = spawnSync("unzip", ["-o", filename, "-d", dstPath]);
-  } else {
-    res = spawnSync("tar", ["-xvzf", filename, "--strip", strip, "-C", dstPath]);
-  }
-  if (res.status !== 0) throw new Error(res.stderr.toString());
-  console.log(" " + logSymbols.success);
-
+  let res = spawnSync(process.execPath, [require.resolve('./unpack.js'), filename, dstPath, strip], {
+    stdio: [0, 1, 2]
+  });
+  if (res.status !== 0) fail(res.stderr.toString());
   return true;
 }
 export function deleteFileSync(filename: string) {

@@ -1,11 +1,11 @@
 {
   "name": "wasdk",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
     "test": "node ./dist/wasdk.js sdk --test",
-    "build": "node_modules/.bin/tsc && node_modules/.bin/tsc -p wasm-sm/tsconfig.json && node_modules/.bin/tsc -p wasm-shell/tsconfig.json",
+    "build": "tsc && tsc -p wasm-sm/tsconfig.json && tsc -p wasm-shell/tsconfig.json",
     "postinstall": "node ./dist/wasdk.js sdk --install",
     "installdeps": "npm install --ignore-scripts",
     "clean": "rm -rf .wasdk-tmp/ bin/ lib/ node_modules/"
@@ -14,7 +14,7 @@
     "wasdk": "./dist/wasdk.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/yurydelendik/wasdk"
