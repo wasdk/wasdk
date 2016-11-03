@@ -27,11 +27,11 @@ function downloadFile(url: string, path: string): Promise<any> {
         for (let i = lastTicks; i < currTicks; i++) {
           process.stdout.write(".");
         }
-      }).on('end', function (chunk) {
+      }).pipe(file).on('finish', function () {
         console.log(" " + logSymbols.success);
         file.end();
         resolve(path);
-      }).pipe(file);
+      });
     }).on('error', function () {
       console.log(" " + logSymbols.error);
       file.end();

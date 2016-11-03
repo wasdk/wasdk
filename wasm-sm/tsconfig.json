@@ -1,8 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "../dist/",
-        "moduleResolution": "classic",
-        "module": "none",
+        "target": "es5",
+        "moduleResolution": "node",
+        "module": "commonjs",
         "types": []
     },
     "files": [

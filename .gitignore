@@ -1,6 +1,6 @@
 bin/
+lib/
 dist/
-.wasdk-tmp
-tools
 node_modules/
+.wasdk-tmp/
 npm-debug.log

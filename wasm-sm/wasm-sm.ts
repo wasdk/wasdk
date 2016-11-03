@@ -1,180 +1,57 @@
 /// <reference path="../globals.d.ts"/>
 
+loadRelativeToScript("../sm_module_resolver.js");
+
+import {
+  BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry
+} from 'wasmparser';
+
 declare let capstone: any;
 
-load("lib/capstone.x86.min.js");
+loadRelativeToScript("../lib/capstone.x86.min.js");
 
-enum SectionID {
-  User = 0, // User defined seection
-  Type = 1, // 	Function signature declarations
-  Import = 2, 	// Import declarations
-  Function = 3, 	// Function declarations
-  Table = 4, 	// Indirect function table and other tables
-  Memory = 5, 	// Memory attributes
-  Global = 6, 	// Global declarations
-  Export = 7, 	// Exports
-  Start = 8, 	// Start function declaration
-  Element = 9, 	// Elements section
-  Code = 10, 	// Function bodies (code)
-  Data = 11 // Data segments
-}
-class WasmParser {
-  offset = 0;
-  position = 0;
-  bytes: Uint8Array;
-  constructor(offset: number, bytes: Uint8Array) {
-    this.bytes = bytes;
-    this.offset = offset;
-    this.position = offset;
-  }
-  hasMoreBytes() {
-    return this.position < this.bytes.length;
-  }
-  readUint32() {
-    let p = this.position;
-    let bytes = this.bytes;
-    var n = bytes[p] | (bytes[p + 1] << 8) | (bytes[p + 2] << 16) | (bytes[p + 3] << 24);
-    this.position += 4;
-    return n;
-  }
-  readVarUInt7() {
-    let b = this.bytes[this.position];
-    this.position++;
-    return b & 0x7F;
-  }
-  readBytes(length: number) {
-    let bytes = this.bytes.subarray(this.position, this.position + length);
-    this.position += length;
-    return bytes;
-  }
-  readVarUint32() {
-    var n = 0, shift = 0, p = this.position, bytes = this.bytes;
-    var b = bytes[p++];
-    while (!!(b & 0x80)) {
-      n |= (b & 0x7F) << shift;
-      shift += 7;
-      b = bytes[p++];
-    }
-    this.position = p;
-    return n | (b << shift);
-  }
-  readNames(count: number) {
-    let names = [];
-    for (let i = 0; i < count; i++) names.push(this.readString(this.readVarUint32()));
-    return names;
-  }
-  readString(len) {
-    var ch = this.bytes.subarray(this.position, this.position + len);
-    this.position += len;
-    return String.fromCharCode.apply(null, ch);
-  }
-}
-
-class WasmSection extends WasmParser {
-  id: SectionID;
-  constructor(offset: number, bytes: Uint8Array) {
-    super(offset, bytes);
-  }
-  parseHeader() {
-    this.id = this.readVarUInt7();
-    this.readVarUint32();
-  }
-}
-class WasmUserSection extends WasmSection {
-  name: string;
-  constructor(offset: number, bytes: Uint8Array) {
-    super(offset, bytes);
-  }
-  parse() {
-    this.parseHeader();
-    this.name = this.readNames(1)[0];
-  }
-}
-
-class WasmNameSection extends WasmUserSection {
-  functionNames: string [] = [];
-  functionLocalNames: string [][] = [];
-  constructor(offset: number, bytes: Uint8Array) {
-    super(offset, bytes);
-  }
-  parse() {
-    super.parse();
-    if (this.name !== "name") throw new Error('WASM: Invalid section name.');
-    let functionCount = this.readVarUint32();
-    for (let i = 0; i < functionCount; i++) {
-      this.functionNames.push(this.readNames(1)[0]);
-      this.functionLocalNames.push(this.readNames(this.readVarUint32()));
-    }
-  }
-}
-
-class WasmCodeSection extends WasmSection {
-  functionBodies: Uint8Array [] = [];
-  constructor(offset: number, bytes: Uint8Array) {
-    super(offset, bytes);
-  }
-  parse() {
-    this.parseHeader();
-    let functionCount = this.readVarUint32();
-    for (let i = 0; i < functionCount; i++) {
-      let size = this.readVarUint32();
-      this.functionBodies.push(this.readBytes(size));
-    }
-  }
-}
-
-class Wasm extends WasmParser {
-  sections: WasmSection [] = [];
-  constructor(bytes: Uint8Array) {
-    super(0, bytes);
-  }
-  findSection(id: SectionID, name?: string) {
-    for (let i = 0; i < this.sections.length; i++) {
-      let section = this.sections[i];
-      if (section.id === id) {
-        if (id === SectionID.User) {
-          let userSection = section as WasmUserSection;
-          if (userSection.name === name) {
-            return userSection;
-          }
-        } else {
-          return section;
-        }
-      }
-    }
-    return null;
-  }
-  parse() {
-    if (this.readUint32() != 0x6d736100) {
-      throw new Error('WASM: Invalid magic number');
-    }
-    if (this.readUint32() != 13) {
-      throw new Error('WASM: Invalid version number');
-    }
-    this.sections = [];
-    while (this.hasMoreBytes()) {
-      let section;
-      let offset = this.position;
-      let id = this.readVarUInt7();
-      let payloadLength = this.readVarUint32();
-      if (id === SectionID.User) {
-        let name = this.readNames(1)[0];
-        if (name === "name") {
-          section = new WasmNameSection(offset, this.bytes);
-          section.parse();
-        }
-      } else if (id === SectionID.Code) {
-        section = new WasmCodeSection(offset, this.bytes);
-        section.parse();
-      }
-      if (!section) section = new WasmSection(offset, this.bytes);
-      this.sections.push(section);
-      this.position += payloadLength;
-    }
-  }
-}
 declare var scriptArgs: any;
 
+function parseCodeMetricsAndNames(wasm: Uint8Array) {
+  let reader = new BinaryReader();
+  reader.setData(wasm.buffer, wasm.byteOffset, wasm.byteLength);
+
+  let names = [];
+  let sizes = [];
+  let funcIndex = 0;
+parsing:
+  while (reader.read()) {
+    switch (reader.state) {
+      case BinaryReaderState.END_WASM:
+        break parsing;
+      case BinaryReaderState.ERROR:
+        throw reader.error;
+      case BinaryReaderState.BEGIN_SECTION:
+        if (reader.currentSection.id != SectionCode.Code &&
+            !(reader.currentSection.id == SectionCode.Custom && bytesToString(reader.currentSection.name) == "name")) {
+           reader.skipSection();
+        }
+        funcIndex = 0;
+        break;
+      case BinaryReaderState.NAME_SECTION_ENTRY:
+        let nameInfo = <INameEntry>reader.result;
+        names[funcIndex++] = bytesToString(nameInfo.funcName);
+        break;
+      case BinaryReaderState.BEGIN_FUNCTION_BODY:
+        let size = reader.currentFunction.bodyEnd - reader.currentFunction.bodyStart;
+        sizes[funcIndex++] = size;
+        reader.skipFunctionBody();
+        break;
+      case BinaryReaderState.END_FUNCTION_BODY:
+      case BinaryReaderState.END_SECTION:
+        break;
+    }
+  }
+  return {
+    sizes: sizes,
+    names: names
+  };
+}
 
 let wasm;
 if (scriptArgs[0].endsWith(".wast")) {
@@ -184,8 +61,6 @@ if (scriptArgs[0].endsWith(".wast")) {
 }
 let m = new WebAssembly.Module(wasm);
 let c = wasmExtractCode(m);
-let wasmFile = new Wasm(wasm);
-wasmFile.parse();
 
 var cs = new capstone.Cs(capstone.ARCH_X86, capstone.MODE_64);
 
@@ -198,16 +73,15 @@ function padRight(s: string, l: number, c: string) {
   return s;
 }
 
-let nameSection = wasmFile.findSection(SectionID.User, "name") as WasmNameSection;
+var metrics = parseCodeMetricsAndNames(wasm);
 
 function printFunctionMetrics() {
-  let codeSection = wasmFile.findSection(SectionID.Code) as WasmCodeSection;
   let totalCodeSize = 0;
   let pairs = [];
-  for (let i = 0; i < codeSection.functionBodies.length; i++) {
-    let size = codeSection.functionBodies[i].length;
+  for (let i = 0; i < metrics.sizes.length; i++) {
+    let size = metrics.sizes[i];
     totalCodeSize += size;
-    let name = nameSection ? nameSection.functionNames[i] : `Func ${i}:`;
+    let name = metrics.names[i] || `Func ${i}:`;
     pairs.push([name, size]);
   }
   console.log("Total Code Size: " + bytesToSize(totalCodeSize));
@@ -254,8 +128,8 @@ c.segments.forEach(s => {
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
   let code = c.code.subarray(begin, end);
-  if (nameSection) {
-    console.log(nameSection.functionNames[s.funcDefIndex] + ":");
+  if (metrics.names[s.funcDefIndex]) {
+    console.log(metrics.names[s.funcDefIndex] + ":");
   } else {
     console.log(`Func ${s.funcDefIndex}:`);
   }

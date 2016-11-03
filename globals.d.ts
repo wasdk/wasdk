@@ -1,5 +1,7 @@
 declare let load: any;
+declare let loadRelativeToScript: any;
 declare let read: any;
+declare let readRelativeToScript: any;
 declare var scriptArgs: any;
 declare let wasmTextToBinary: any;
 declare let wasmExtractCode: any;

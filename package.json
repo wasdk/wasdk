@@ -1,12 +1,13 @@
 {
   "name": "wasdk",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
     "test": "node ./dist/wasdk.js sdk --test",
     "build": "node_modules/.bin/tsc && node_modules/.bin/tsc -p wasm-sm/tsconfig.json && node_modules/.bin/tsc -p wasm-shell/tsconfig.json",
-    "postinstall": "npm run build && node ./dist/wasdk.js sdk --install"
+    "postinstall": "node ./dist/wasdk.js sdk --install",
+    "clean": "rm -rf .wasdk-tmp/ bin/ lib/ node_modules/"
   },
   "bin": {
     "wasdk": "./dist/wasdk.js"
@@ -27,6 +28,7 @@
     "mkdirp": "^0.5.1",
     "rimraf": "^2.5.4",
     "tmp": "0.0.29",
+    "wasmparser": "^0.1.6",
     "webidl2": "^2.0.11"
   },
   "devDependencies": {
