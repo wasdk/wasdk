@@ -95,7 +95,7 @@ function install() {
   decompressFileSync(filename, LLVM_ROOT, 1);
 
   section("Installing Binaryen");
-  url = thirdpartyConfig.all.binaryen;
+  url = thirdpartyConfig[platform].binaryen;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, BINARYEN_ROOT, 0);
 
