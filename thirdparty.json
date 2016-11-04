@@ -7,6 +7,10 @@
     "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/linux_64bit/emscripten-llvm-latest.tar.gz",
     "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip"
   },
+  "win32": {
+    "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/win_64bit/emscripten-llvm-latest.zip",
+    "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-win32.zip"
+  },
   "all": {
     "emscripten": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz",
     "binaryen": "http://areweflashyet.com/wasm/binaryen-latest.tar.gz",

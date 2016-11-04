@@ -80,7 +80,8 @@ function install() {
                              path.join(__dirname, "..", "thirdparty.json");
   let thirdpartyConfig = JSON.parse(fs.readFileSync(thirdpartyConfigPath).toString());
   let url, filename;
-  if (process.platform !== "darwin" && process.platform !== "linux")
+  let platform = process.platform;
+  if (platform !== "darwin" && platform !== "linux" && platform !== "win32")
     fail(`Platform ${process.platform} not supported.`);
 
   section("Installing Emscripten");
@@ -89,7 +90,7 @@ function install() {
   decompressFileSync(filename, EMSCRIPTEN_ROOT, 1);
 
   section("Installing LLVM");
-  url = thirdpartyConfig[process.platform].llvm;
+  url = thirdpartyConfig[platform].llvm;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, LLVM_ROOT, 1);
 
@@ -99,7 +100,7 @@ function install() {
   decompressFileSync(filename, BINARYEN_ROOT, 0);
 
   section("Installing Spidermonkey");
-  url = thirdpartyConfig[process.platform].spidermonkey;
+  url = thirdpartyConfig[platform].spidermonkey;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, SPIDERMONKEY_ROOT, 0);
 

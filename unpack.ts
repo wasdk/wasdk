@@ -17,6 +17,10 @@
 var decompress: (input: string, output: string, options?: any) => Promise<any> = require('decompress');
 var logSymbols = require('log-symbols');
 
+// Avoiding "too many open files" error.
+var gracefulFs = require('graceful-fs');
+gracefulFs.gracefulify(require('fs'));
+
 let filename = process.argv[2];
 let dstPath = process.argv[3];
 let strip = +process.argv[4];
