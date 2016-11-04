@@ -1,6 +1,5 @@
 bin/
 lib/
-test/
 node_modules/
 .wasdk-tmp/
 npm-debug.log
