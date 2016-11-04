@@ -39,6 +39,9 @@ export function wasdkPath(pathSegment: string) {
   if (path.isAbsolute(pathSegment)) return pathSegment;
   return pathFromRoot(pathSegment);
 }
+export function ifWindows(s: string): string {
+  return process.platform === 'win32' ? s : '';
+}
 
 export let WASDK_DEBUG = process.env.WASDK_DEBUG;
 export let EM_CONFIG = pathFromRoot("bin", ".emscripten");
@@ -48,8 +51,8 @@ export let BINARYEN_ROOT = pathFromRoot("bin", "binaryen");
 export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
 export let LIB_ROOT = pathFromRoot("lib");
 
-export let EMCC = pathFromRoot("bin", "emscripten", "emcc");
-export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js");
+export let EMCC = pathFromRoot("bin", "emscripten", "emcc" + ifWindows(".bat"));
+export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js" + ifWindows(".exe"));
 
 export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
 // export let TMP_DIR = tmp.dirSync().name;
@@ -77,11 +80,18 @@ export function flatten(elements: any [], target?: any []) {
   });
   return target;
 }
+export function replaceBackslash(s: string): string {
+  return s.split('\\').join('/');
+}
+export function doubleBackslash(s: string): string {
+  return s.split('\\').join('\\\\');
+}
+
 export function writeEMConfig() {
-  let str = `LLVM_ROOT = '${LLVM_ROOT}'
-EMSCRIPTEN_ROOT = '${EMSCRIPTEN_ROOT}'
-BINARYEN_ROOT = '${BINARYEN_ROOT}'
-NODE_JS = '${process.execPath}'
+  let str = `LLVM_ROOT = '${replaceBackslash(LLVM_ROOT)}'
+EMSCRIPTEN_ROOT = '${replaceBackslash(EMSCRIPTEN_ROOT)}'
+BINARYEN_ROOT = '${replaceBackslash(BINARYEN_ROOT)}'
+NODE_JS = '${replaceBackslash(process.execPath)}'
 COMPILER_ENGINE = NODE_JS
 JS_ENGINES = [NODE_JS]`;
   fs.writeFileSync(EM_CONFIG, str);

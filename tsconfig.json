@@ -8,7 +8,6 @@
         "node_modules"
     ],
     "files": [
-        "get-tools.ts",
         "wasm-bind.ts",
         "shared.ts",
         "idl.ts",
