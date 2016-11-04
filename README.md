@@ -14,26 +14,27 @@ This is recommended if you want to contribute to the wasdk project.
 
 Clone this repository and run:
 ```
-npm install
+npm run installdeps
 ```
 
-This downloads all necessary pre-compiled binaries for your operating system, which includes: Emscripten, Binaryen, SpiderMonkey, LLVM and Clang.
+and to build sources:
+```
+npm run build
+```
 
-## Usage
-
-Wasdk includes a variety of tools which accessible through the `wasdk` command:
-
-
-### SDK Management
-
+To download all necessary pre-compiled binaries for your operating system, which includes: Emscripten, Binaryen, SpiderMonkey, LLVM and Clang:
 ```
 wasdk sdk --install
 ```
 
+And clean up (built sourced and download binaries):
+```
+npm run clean
+```
 
-```
-wasdk sdk --clean
-```
+## Usage
+
+Wasdk includes a variety of tools which accessible through the `wasdk` command:
 
 ### Compiling Modules
 
@@ -88,6 +89,16 @@ Func 0:
   ret                                               ; 0x00005f c3
 ```
 
+### SDK Management
+
+```
+wasdk sdk --install
+```
+
+
+```
+wasdk sdk --clean
+```
 
 ## Testing
 ```
