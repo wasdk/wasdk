@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/yurydelendik/wasdk.svg?branch=master)](https://travis-ci.org/yurydelendik/wasdk)
+
 # WebAssembly SDK
 A toolkit for creating WebAssembly modules.
 
