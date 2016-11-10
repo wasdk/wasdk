@@ -75,6 +75,15 @@ function sdk() {
   if (cliArgs.install) install();
   if (cliArgs.test) test();
 }
+function patchEM() {
+  let emscriptenPath = path.join(EMSCRIPTEN_ROOT, 'emscripten.py');
+
+  // Fixing asm2wasm compilation, see https://github.com/kripken/emscripten/issues/4715
+  let s = fs.readFileSync(emscriptenPath).toString();
+  s = s.replace(/if\ssettings\[\'ALLOW_MEMORY_GROWTH\'\]:(\s+exported_implemented_functions\.)/, 
+    "if not settings['ONLY_MY_CODE'] and settings['ALLOW_MEMORY_GROWTH']:$1");
+  fs.writeFileSync(emscriptenPath, s);
+}
 function install() {
   var thirdpartyConfigPath = process.env.WASDK_3PARTY ||
                              path.join(__dirname, "..", "thirdparty.json");
@@ -88,6 +97,7 @@ function install() {
   url = thirdpartyConfig.all.emscripten;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, EMSCRIPTEN_ROOT, 1);
+  patchEM();
 
   section("Installing LLVM");
   url = thirdpartyConfig[platform].llvm;
@@ -176,6 +186,7 @@ function ezCompile() {
   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
   args.push(["-s", "VERBOSE=1"]);
+  args.push(["-s", "ONLY_MY_CODE=1"]);
   args.push(["-s", "BINARYEN_IMPRECISE=1"]);
   args.push(["-s", "ALLOW_MEMORY_GROWTH=1"]);
   args.push(["-s", "RELOCATABLE=1"]);

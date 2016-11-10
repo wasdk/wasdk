@@ -18,7 +18,8 @@
 loadRelativeToScript("../sm_module_resolver.js");
 
 import {
-  BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry
+  BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry,
+  IImportEntry, ExternalKind
 } from 'wasmparser';
 
 declare let capstone: any;
@@ -33,7 +34,9 @@ function parseCodeMetricsAndNames(wasm: Uint8Array) {
 
   let names = [];
   let sizes = [];
+  let imports = 0;
   let funcIndex = 0;
+  let funcIndexForNames = 0;
 parsing:
   while (reader.read()) {
     switch (reader.state) {
@@ -43,14 +46,20 @@ parsing:
         throw reader.error;
       case BinaryReaderState.BEGIN_SECTION:
         if (reader.currentSection.id != SectionCode.Code &&
-            !(reader.currentSection.id == SectionCode.Custom && bytesToString(reader.currentSection.name) == "name")) {
+            !(reader.currentSection.id == SectionCode.Custom && bytesToString(reader.currentSection.name) == "name") &&
+            reader.currentSection.id != SectionCode.Import) {
            reader.skipSection();
         }
-        funcIndex = 0;
+        break;
+      case BinaryReaderState.IMPORT_SECTION_ENTRY:
+        if ((<IImportEntry>reader.result).kind != ExternalKind.Function)
+          break;
+        sizes[funcIndex++] = 0;
+        imports++;
         break;
       case BinaryReaderState.NAME_SECTION_ENTRY:
         let nameInfo = <INameEntry>reader.result;
-        names[funcIndex++] = bytesToString(nameInfo.funcName);
+        names[funcIndexForNames++] = bytesToString(nameInfo.funcName);
         break;
       case BinaryReaderState.BEGIN_FUNCTION_BODY:
         let size = reader.currentFunction.bodyEnd - reader.currentFunction.bodyStart;
@@ -63,6 +72,7 @@ parsing:
     }
   }
   return {
+    imports: imports,
     sizes: sizes,
     names: names
   };
@@ -139,14 +149,15 @@ function toBytes(a) {
 let assemblyInstructionsByAddress = Object.create(null);
 
 c.segments.forEach(s => {
-  if (s.funcDefIndex === undefined) return;
+  if (s.funcIndex === undefined) return;
   let begin = s.funcBodyBegin;
   let end = s.funcBodyEnd;
+  let index = s.funcIndex;
   let code = c.code.subarray(begin, end);
-  if (metrics.names[s.funcDefIndex]) {
-    console.log(metrics.names[s.funcDefIndex] + ":");
+  if (metrics.names[index]) {
+    console.log(metrics.names[index] + ":");
   } else {
-    console.log(`Func ${s.funcDefIndex}:`);
+    console.log(`Func ${index}:`);
   }
   var instructions = cs.disasm(code, begin);
   printInstructions(instructions);
