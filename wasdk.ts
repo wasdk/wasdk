@@ -97,6 +97,9 @@ function install() {
   url = thirdpartyConfig.all.emscripten;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, EMSCRIPTEN_ROOT, 1);
+  url = thirdpartyConfig.all.emscriptenpatch;
+  filename = downloadFileSync(url, TMP_DIR);
+  decompressFileSync(filename, EMSCRIPTEN_ROOT, 0);
   patchEM();
 
   section("Installing LLVM");
