@@ -2,9 +2,10 @@
     "compilerOptions": {
 
     },
+    "output": "list.js",
     "interface": "list.idl",
     "files": [
-        "list.cpp"
+        "list.c"
     ],
     "options": {
         "EXPORTED_RUNTIME_METHODS": [],

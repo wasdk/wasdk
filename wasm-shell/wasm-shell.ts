@@ -15,7 +15,7 @@
  */
 /// <reference path="../globals.d.ts"/>
 
-let wasm: any;
+let wasm: any, memorywasm: any;
 
 let INITIAL_MEMORY = 16 * 1024 * 1024;
 let MAXIMUM_MEMORY = 32 * 1024 * 1024;
@@ -87,25 +87,25 @@ class Module {
   instance: WebAssemblyInstance = null;
   environment: any;
   options: ModuleOptions;
-  constructor(module: WebAssemblyModule, memory: WebAssemblyMemory, table: WebAssemblyTable, options: ModuleOptions) {
+  constructor(module: WebAssemblyModule, memory: WebAssemblyMemory, table: WebAssemblyTable, options: ModuleOptions, malloc?: MallocModule) {
     this.module = module;
     this.memory = memory;
     this.table = table;
     this.options = options;
     this.instance = new WebAssembly.Instance(module, {
-      env: this.createEnvironment(),
+      env: this.createEnvironment(malloc),
       global: {
         NaN: NaN,
         Infinity: Infinity
       }
     });
   }
-  createEnvironment() {
+  createEnvironment(malloc?: MallocModule) {
     let stackTop = this.options.stackBase;
     let stackMax = stackTop + this.options.stackSize;
     let staticBase = this.options.staticBase;
 
-    return {
+    var env: any = {
       gb: staticBase,
       fb: 0,
       STACKTOP: stackTop,
@@ -119,11 +119,15 @@ class Module {
       _abort: this.nop.bind(this, "_abort"),
       _emscripten_memcpy_big: this.nop.bind(this, "_emscripten_memcpy_big"),
       ___setErrNo: this.nop.bind(this, "___setErrNo"),
+      _print: function (i) { console.log(`[print: ${i}]`); },
       memory: this.memory,
       table: this.table,
       memoryBase: staticBase,
       tableBase: 0
-    }
+    };
+    if (malloc)
+      malloc.extendEnvironment(env);
+    return env;
   }
   nop(s: string) {
     console.log("NOP: " + s);
@@ -134,6 +138,9 @@ class Module {
   getTotalMemory() {
     return this.memory.buffer.byteLength;
   }
+  exports(): any {
+    return this.instance.exports;
+  }
 }
 
 class MallocModule extends Module {
@@ -141,7 +148,11 @@ class MallocModule extends Module {
     super(module, memory, table, options);
   }
   malloc(size: number) {
-    return this.instance.exports._malloc(size);
+    return this.exports()._malloc(size);
+  }
+  extendEnvironment(env: any): void {
+    env._malloc = this.instance.exports._malloc;
+    env._free = this.instance.exports._free;
   }
 }
 
@@ -151,10 +162,17 @@ if (scriptArgs[0].endsWith(".wast")) {
   wasm = read(scriptArgs[0], "binary");
 }
 
+if (scriptArgs[1].endsWith(".wast")) {
+  memorywasm = wasmTextToBinary(read(scriptArgs[1]));
+} else {
+  memorywasm = read(scriptArgs[1], "binary");
+}
+
+let mm = new WebAssembly.Module(memorywasm);
 let m = new WebAssembly.Module(wasm);
 
 let table = new WebAssembly.Table({ initial: TABLE_SIZE, maximum: TABLE_SIZE, element: 'anyfunc' });
-let rootModule = new MallocModule(m, memory, table, new ModuleOptions(1024));
+let rootModule = new MallocModule(mm, memory, table, new ModuleOptions(1024));
 
 // Create a root malloc modules and some child modules.
 
@@ -162,16 +180,14 @@ let modules = [];
 
 for (let i = 0; i < 16; i++) {
   let base = rootModule.malloc(WASM_PAGE_SIZE);
-  let childModule = new MallocModule(m, memory, table, new ModuleOptions(base));
+  let childModule = new Module(m, memory, table, new ModuleOptions(base),rootModule);
   modules.push(childModule);
   // print("MALLOC: " + module.malloc(12));
 }
 
-for (let j = 0; j < 64; j++) {
+for (let j = 0; j < 16; j++) {
   modules.forEach((m, i) => {
     console.log("Module " + i);
-    for (let k = 0; k < 16; k++) {
-      console.log(" " + m.malloc(12));
-    }
+    m.exports()._test();
   });
 }

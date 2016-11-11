@@ -133,9 +133,13 @@ function clean() {
 interface Config {
   files: string [];
   interface?: string;
+  output?: string;
   options: {
     EXPORTED_RUNTIME_METHODS: string [],
-    EXPORTED_FUNCTIONS: string []
+    EXPORTED_FUNCTIONS: string [],
+    ONLY_MY_CODE: number,
+    RELOCATABLE: number,
+    VERBOSE: number
   }
 }
 function resolveConfig(config: Config, configPath: string = null) {
@@ -152,6 +156,9 @@ function resolveConfig(config: Config, configPath: string = null) {
   config.files = config.files.map(resolvePath);
   config.interface = resolvePath(config.interface);
 
+  if (config.output) {
+    config.output = resolvePath(config.output);
+  }
   if (config.interface) {
     let idl = IDL.parse(fs.readFileSync(config.interface).toString());
     let moduleInterface = IDL.getInterfaceByName("Module", idl);
@@ -163,22 +170,37 @@ function resolveConfig(config: Config, configPath: string = null) {
   }
 }
 function quoteStringArray(a: string []): string {
-    return `[${a.map(x => `'${x}'`).join(", ")}]`;
+  return `[${a.map(x => `'${x}'`).join(", ")}]`;
+}
+function mergeConfigs(base: any, delta: any) {
+  for (var name in delta) {
+    var value = delta[name];
+    if (typeof value === 'object' && value !== null) {
+      if (!base[name])
+        base[name] = {};
+      mergeConfigs(base[name], value);
+    } else {
+      base[name] = value;
+    }
   }
+}
 function ezCompile() {
   let config: Config = {
     files: [],
     interface: null,
     options: {
       EXPORTED_RUNTIME_METHODS: [],
-      EXPORTED_FUNCTIONS: []
+      EXPORTED_FUNCTIONS: [],
+      ONLY_MY_CODE: 1,
+      RELOCATABLE: 1,
+      VERBOSE: 0
     }
   };
   if (path.extname(cliArgs.input) === ".json") {
-    config = JSON.parse(fs.readFileSync(cliArgs.input, 'utf8'));
+    mergeConfigs(config, JSON.parse(fs.readFileSync(cliArgs.input, 'utf8')));
     resolveConfig(config, cliArgs.input);
   } else {
-    config.files = [cliArgs.input];
+    mergeConfigs(config, {files: [cliArgs.input]});
     resolveConfig(config);
   }
 
@@ -188,18 +210,18 @@ function ezCompile() {
   args.push(["-s", "NO_FILESYSTEM=1"]);
   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
-  args.push(["-s", "VERBOSE=1"]);
-  args.push(["-s", "ONLY_MY_CODE=1"]);
   args.push(["-s", "BINARYEN_IMPRECISE=1"]);
   args.push(["-s", "ALLOW_MEMORY_GROWTH=1"]);
-  args.push(["-s", "RELOCATABLE=1"]);
 
+  args.push(["-s", `VERBOSE=${config.options.VERBOSE}`]);
+  args.push(["-s", `RELOCATABLE=${config.options.RELOCATABLE}`]);
+  args.push(["-s", `ONLY_MY_CODE=${config.options.ONLY_MY_CODE}`]);
   args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
   args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
 
   if (cliArgs.debuginfo) args.push("-g 3");
   args.push(inputFiles);
-  let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve("a.js");
+  let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve(config.output || "a.js");
   args.push(["-o", outputFile]);
   args = flatten(args);
   console.info(EMCC + " " + args.join(" "));

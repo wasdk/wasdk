@@ -5,6 +5,7 @@
         "module": "none",
         "types": []
     },
+    "target": "es5",
     "files": [
         "wasm-shell.ts"
     ]

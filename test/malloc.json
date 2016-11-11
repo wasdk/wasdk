@@ -1,12 +1,14 @@
 {
     "compilerOptions": {
-
     },
+    "output": "malloc.js",
     "interface": "malloc.idl",
     "files": [
         "malloc.cpp"
     ],
     "options": {
+        "ONLY_MY_CODE": 0,
+        "RELOCATABLE": 0,
         "EXPORTED_RUNTIME_METHODS": [],
         "EXPORTED_FUNCTIONS": []
     }
