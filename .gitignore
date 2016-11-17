@@ -2,5 +2,6 @@ bin/
 lib/
 dist/
 node_modules/
+!wasm-idl/node_modules/
 .wasdk-tmp/
 npm-debug.log
