@@ -8,9 +8,7 @@
         "node_modules"
     ],
     "files": [
-        "wasm-bind.ts",
         "shared.ts",
-        "idl.ts",
         "wasdk.ts",
         "unpack.ts",
         "download.ts"

@@ -119,6 +119,9 @@ export function pathLooksLikeDirectory(path: string) {
   if (suffix === ".exe" || suffix == ".zip") return false;
   return true;
 }
+export function ensureDirectoryCreatedSync(path: string) {
+  mkdirp.sync(path);
+}
 export function downloadFileSync(url: string, dstPath: string, downloadEvenIfExists = false, filenamePrefix = ""): string {
   let filename = filenamePrefix + element(url.split("/"), -1);
   if (pathLooksLikeDirectory(dstPath)) {

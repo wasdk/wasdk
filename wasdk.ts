@@ -18,9 +18,9 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
-import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync } from "./shared";
+import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync } from "./shared";
 import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
-import { IDL } from "./idl";
+import { WebIDLWasmGen, WasmIDL } from "./wasm-idl/wasm-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',
@@ -40,6 +40,12 @@ ezParser.addArgument(['--idl'], { help: 'WebIDL file.' });
 ezParser.addArgument(['--debuginfo', '-g'], { action: 'storeTrue', help: 'Emit names section and debug info' });
 ezParser.addArgument(['input'], { help: 'Input file(s).' });
 
+let idlGenerator = subparsers.addParser('idl', { help: "Generate idl-based project:  .j/.c/.cpp files.", addHelp: true });
+idlGenerator.addArgument(['input'], { help: 'Input .idl file.' });
+idlGenerator.addArgument(['-o', '--output'], { help: 'Output directory.' });
+idlGenerator.addArgument(['-n', '--namespace'], {help: 'C++ namespace'});
+idlGenerator.addArgument(['-p', '--prefix'], {help: 'Filename prefix for .js/.h/.cpp'});
+
 let smParser = subparsers.addParser('disassemble', { help: "Disassemble files.", addHelp: true });
 smParser.addArgument(['input'], { help: 'Input .wast/.wasm file.' });
 
@@ -56,6 +62,7 @@ WASDK_DEBUG && console.dir(cliArgs);
 if (cliArgs.command === "emcc") emcc();
 if (cliArgs.command === "js") js();
 if (cliArgs.command === "sdk") sdk();
+if (cliArgs.command === "idl") idl();
 if (cliArgs.command === "ez") ezCompile();
 if (cliArgs.command === "disassemble") disassemble();
 
@@ -130,6 +137,24 @@ function clean() {
   deleteFileSync(EMSCRIPTEN_ROOT);
 }
 
+function idl() {
+  var idlPath = cliArgs.input;
+  var basename = path.basename(idlPath, path.extname(idlPath));
+  var outputDir = cliArgs.output || basename;
+  ensureDirectoryCreatedSync(outputDir);
+  var fileprefix = cliArgs.prefix || basename;
+  var namespace = cliArgs.namespace || (fileprefix[0].toUpperCase() + fileprefix.slice(1));
+  if (!/^\w+$/.test(namespace)) throw new Error('Invalid C++ namespace: ' + namespace);
+
+  var gen = new WebIDLWasmGen(namespace, fileprefix);
+  var idlContent = fs.readFileSync(idlPath).toString();
+  gen.parse(idlContent);
+  fs.writeFileSync(path.join(outputDir, fileprefix + '.js'), gen.getJSCode());
+  fs.writeFileSync(path.join(outputDir, fileprefix + '.json'), gen.getJsonCode());
+  fs.writeFileSync(path.join(outputDir, fileprefix + '.h'), gen.getHCode());
+  fs.writeFileSync(path.join(outputDir, fileprefix + '.cpp'), gen.getCxxCode());
+}
+
 interface Config {
   files: string [];
   interface?: string;
@@ -138,6 +163,8 @@ interface Config {
     EXPORTED_RUNTIME_METHODS: string [],
     EXPORTED_FUNCTIONS: string [],
     ONLY_MY_CODE: number,
+    SIDE_MODULE: number,
+    ALLOW_MEMORY_GROWTH: number,
     RELOCATABLE: number,
     VERBOSE: number
   }
@@ -160,8 +187,8 @@ function resolveConfig(config: Config, configPath: string = null) {
     config.output = resolvePath(config.output);
   }
   if (config.interface) {
-    let idl = IDL.parse(fs.readFileSync(config.interface).toString());
-    let moduleInterface = IDL.getInterfaceByName("Module", idl);
+    let idl = WasmIDL.parse(fs.readFileSync(config.interface).toString());
+    let moduleInterface = WasmIDL.getInterfaceByName("Module", idl);
     if (!moduleInterface) fail("WebIDL file must declare a Module interface.");
     let members = moduleInterface.members.filter(m => m.type === "operation").map(m => m.name);
     config.options.EXPORTED_FUNCTIONS = config.options.EXPORTED_FUNCTIONS.concat(members.map(m => "_" + m));
@@ -192,6 +219,8 @@ function ezCompile() {
       EXPORTED_RUNTIME_METHODS: [],
       EXPORTED_FUNCTIONS: [],
       ONLY_MY_CODE: 1,
+      ALLOW_MEMORY_GROWTH: 1,
+      SIDE_MODULE: 0,
       RELOCATABLE: 1,
       VERBOSE: 0
     }
@@ -211,11 +240,12 @@ function ezCompile() {
   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
   args.push(["-s", "BINARYEN_IMPRECISE=1"]);
-  args.push(["-s", "ALLOW_MEMORY_GROWTH=1"]);
 
   args.push(["-s", `VERBOSE=${config.options.VERBOSE}`]);
   args.push(["-s", `RELOCATABLE=${config.options.RELOCATABLE}`]);
   args.push(["-s", `ONLY_MY_CODE=${config.options.ONLY_MY_CODE}`]);
+  args.push(["-s", `ALLOW_MEMORY_GROWTH=${config.options.ALLOW_MEMORY_GROWTH}`]);
+  args.push(["-s", `SIDE_MODULE=${config.options.SIDE_MODULE}`]);
   args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
   args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
 
