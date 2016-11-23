@@ -152,6 +152,8 @@ var _module = wasmbase.getWasmInstance('${this._moduleName}', {
   _invokeCallback: invokeCallback,
 });
 var _memory = wasmbase.memory;
+var _malloc = wasmbase.malloc;
+var _free = wasmbase.free;
 var _callbacks = Object.create(null);
 var _objects = Object.create(null);
 var _data = new DataView(_memory.buffer, 0);
@@ -180,7 +182,7 @@ using namespace ${this._moduleName};`);
   private finalizeResults() {
     this._jsText.push('});')
     this._hText.push(`#endif // __${this._moduleName.toUpperCase()}_H`);
-    this._cxxText.push('}');
+    this._cxxText.push(`} // namespace ${this._moduleName}`);
   }
 
   private mangleName(name: ClassOrFunctionName, fnArgs?): string {
@@ -413,7 +415,7 @@ using namespace ${this._moduleName};`);
             size += this.typeSize(v.idlType);
             break;
         }
-        outStatements.push(`*${v.name} = ${this.getTypedValue(v.idlType, offset)};`);
+        outStatements.push(`var ${v.name} = ${this.getTypedValue(v.idlType, offset)};`);
       });
     }
     return {
@@ -557,7 +559,8 @@ bool ${interface_.name}::${op.name}(${argsCxx.join(', ')})
       }
     });
 
-    jsText.push("}");
+    jsText.push(`}
+exports.${interface_.name} = ${interface_.name};`);
     jsText.push(`function lookupObject_${interface_.name}(p) {
   if (p === NullPtr) return null;
   var entry = _objects[p];
@@ -567,7 +570,13 @@ bool ${interface_.name}::${op.name}(${argsCxx.join(', ')})
   }
   return entry.obj;
 }`);
-    hText.push("};");
+    hText.push(`// additional ${interface_.name} members
+  private:
+};`);
+
+    jsText.push(`// end of ${interface_.name} class wrapper`);
+    hText.push(`// end of ${interface_.name} class definition`);
+    cxxText.push(`// end of ${interface_.name} class members`);
   }
 
   private parseCallback(callback: IDLCallback): void {
@@ -612,6 +621,8 @@ function lookupObject_${callback.name}(p, callback) {
     void Destroy();
 
     bool Call(${argsCxx.join(', ')});
+// additional ${callback.name} members
+  private:
 };`);
     cxxText.push(`
 ${callback.name}::${callback.name}()
@@ -645,6 +656,10 @@ bool ${callback.name}::Call(${argsCxx.join(', ')})
     cxxText.push(`  return success;
 }
 `);
+
+    jsText.push(`// end of ${callback.name} callback wrapper`);
+    hText.push(`// end of ${callback.name} callback definition`);
+    cxxText.push(`// end of ${callback.name} callback members`);
   }
 
   private parseWebIDL(tree: IDLElement[]) {
