@@ -49,7 +49,6 @@ export let LLVM_ROOT = pathFromRoot("bin", "llvm");
 export let EMSCRIPTEN_ROOT = pathFromRoot("bin", "emscripten");
 export let BINARYEN_ROOT = pathFromRoot("bin", "binaryen");
 export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
-export let LIB_ROOT = pathFromRoot("lib");
 
 export let EMCC = pathFromRoot("bin", "emscripten", "emcc" + ifWindows(".bat"));
 export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js" + ifWindows(".exe"));

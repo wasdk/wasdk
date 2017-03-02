@@ -19,7 +19,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync } from "./shared";
-import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, LIB_ROOT, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 import { WebIDLWasmGen, WasmIDL } from "./wasm-idl/wasm-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
@@ -123,11 +123,6 @@ function install() {
   url = thirdpartyConfig[platform].spidermonkey;
   filename = downloadFileSync(url, TMP_DIR);
   decompressFileSync(filename, SPIDERMONKEY_ROOT, 0);
-
-  section("Installing Libs")
-  url = thirdpartyConfig.all.capstone;
-  filename = downloadFileSync(url, TMP_DIR);
-  decompressFileSync(filename, LIB_ROOT, 0);
 
   writeEMConfig();
 }

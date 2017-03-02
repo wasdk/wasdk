@@ -16,7 +16,6 @@
   },
   "all": {
     "emscripten": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz",
-    "emscriptenpatch": "http://areweflashyet.com/wasm/emscripten-tools.zip",
-    "capstone": "http://areweflashyet.com/wasm/capstone.x86.min.js.tar.gz"
+    "emscriptenpatch": "http://areweflashyet.com/wasm/emscripten-tools.zip"
   }
 }

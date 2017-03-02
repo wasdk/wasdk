@@ -21,10 +21,7 @@ import {
   BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry,
   IImportEntry, ExternalKind
 } from 'wasmparser';
-
-declare let capstone: any;
-
-loadRelativeToScript("../lib/capstone.x86.min.js");
+import { Capstone, ARCH_X86, MODE_64, Instruction } from 'wasdk-capstone-x86';
 
 declare var scriptArgs: any;
 
@@ -87,7 +84,7 @@ if (scriptArgs[0].endsWith(".wast")) {
 let m = new WebAssembly.Module(wasm);
 let c = wasmExtractCode(m);
 
-var cs = new capstone.Cs(capstone.ARCH_X86, capstone.MODE_64);
+var cs = new Capstone(ARCH_X86, MODE_64);
 
 function padLeft(s: string, l: number, c: string) {
   while (s.length < l) s = c + s;
@@ -123,7 +120,7 @@ var x86JumpInstructions = [
   "jo", "jp", "jpe", "jpo", "js", "jz"
 ];
 
-function isBranch(instr) {
+function isBranch(instr: Instruction) {
   return x86JumpInstructions.indexOf(instr.mnemonic) >= 0;
 }
 
@@ -163,7 +160,7 @@ c.segments.forEach(s => {
   printInstructions(instructions);
 });
 
-function printInstructions(instructions: any []) {
+function printInstructions(instructions: Instruction[]) {
   var pretty = true;
   var basicBlocks = {};
   instructions.forEach(function(instr, i) {
@@ -198,4 +195,4 @@ function printInstructions(instructions: any []) {
   });
 }
 
-cs.delete();
+cs.close();
