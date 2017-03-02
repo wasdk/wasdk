@@ -32,6 +32,6 @@ var require = function (name) {
     }
   });
   if (!found)
-    throw new Error('Module ' + name + ' was not found: ' + e);
+    throw new Error('Module ' + name + ' was not found');
   return module.exports;
 };

@@ -1,6 +1,6 @@
 {
   "name": "wasdk",
-  "version": "1.0.36",
+  "version": "1.0.37",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
@@ -30,6 +30,7 @@
     "mkdirp": "^0.5.1",
     "rimraf": "^2.5.4",
     "tmp": "0.0.29",
+    "wasdk-capstone-x86": "^1.0.6",
     "wasmparser": "^0.1.6",
     "webidl2": "^2.0.11"
   },
@@ -40,7 +41,6 @@
     "@types/fs-extra": "0.0.33",
     "@types/node": "^6.0.45",
     "@types/tmp": "0.0.31",
-    "typescript": "^2.0.3",
-    "wasdk-capstone-x86": "^1.0.5"
+    "typescript": "^2.0.3"
   }
 }
