@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// Node globals.
+var exports = {}, module = {exports: exports}, global=this;
+
 // Helper file to mock CommonJS require() loader.
 var require = function (name) {
   var module = {exports: {}};

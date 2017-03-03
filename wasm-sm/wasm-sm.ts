@@ -15,8 +15,6 @@
  */
 /// <reference path="../globals.d.ts"/>
 
-loadRelativeToScript("../sm_module_resolver.js");
-
 import {
   BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry,
   IImportEntry, ExternalKind

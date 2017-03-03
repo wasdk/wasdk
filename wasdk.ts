@@ -370,17 +370,21 @@ function ezCompile() {
 //   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
 // }
 
+function getWasmSMCommandArgs(input) {
+  var smAsNode = path.resolve(__dirname, '..', 'sm_as_node.js');
+  return flatten(['-f', smAsNode, path.join(__dirname, "wasm-sm.js"), input]);
+}
+
 function disassemble() {
   let input = path.resolve(cliArgs.input);
-  let args = flatten([path.join(__dirname, "wasm-sm.js"), input]);
+  let args = getWasmSMCommandArgs(input);
   let res = spawnSync(JS, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Disassembly error.");
 }
 
 function test() {
   let input = path.resolve("test/universe.wast");
-  let args = flatten([path.join(__dirname, "wasm-sm.js"), input]);
-  console.log(args);
+  let args = getWasmSMCommandArgs(input);
   let res = spawnSync(JS, args);
   if (res.status !== 0) fail("Disassembly error.");
   let out = res.stdout.toString();
