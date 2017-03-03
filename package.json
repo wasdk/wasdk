@@ -1,6 +1,6 @@
 {
   "name": "wasdk",
-  "version": "1.0.40",
+  "version": "1.0.41",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yurydelendik/wasdk"
+    "url": "https://github.com/wasdk/wasdk"
   },
   "dependencies": {
     "argparse": "^1.0.9",
