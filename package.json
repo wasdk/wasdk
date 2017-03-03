@@ -1,6 +1,6 @@
 {
   "name": "wasdk",
-  "version": "1.0.39",
+  "version": "1.0.40",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
@@ -22,15 +22,9 @@
   "dependencies": {
     "argparse": "^1.0.9",
     "colors": "^1.1.2",
-    "decompress": "^4.0.0",
     "fs-extra": "^0.30.0",
-    "graceful-fs": "^4.1.10",
-    "log": "^1.4.0",
-    "log-symbols": "^1.0.2",
-    "mkdirp": "^0.5.1",
-    "rimraf": "^2.5.4",
-    "tmp": "0.0.29",
     "wasdk-capstone-x86": "^1.0.6",
+    "wasdk-utils": "^1.0.0",
     "wasmparser": "^0.1.9",
     "webidl2": "^2.0.11"
   },
@@ -40,7 +34,6 @@
     "@types/es6-promise": "0.0.31",
     "@types/fs-extra": "0.0.33",
     "@types/node": "^6.0.45",
-    "@types/tmp": "0.0.31",
     "typescript": "^2.0.3"
   }
 }

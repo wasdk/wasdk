@@ -9,8 +9,6 @@
     ],
     "files": [
         "shared.ts",
-        "wasdk.ts",
-        "unpack.ts",
-        "download.ts"
+        "wasdk.ts"
     ]
 }
