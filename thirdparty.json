@@ -11,7 +11,7 @@
   },
   "win32": {
     "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/win_64bit/emscripten-llvm-latest.zip",
-    "binaryen": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/windows/binaryen-win-latest.tar.gz",
+    "binaryen": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/windows/binaryen-win-latest.zip",
     "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-win32.zip"
   },
   "all": {
