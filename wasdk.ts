@@ -229,7 +229,6 @@ interface Config {
   options: {
     EXPORTED_RUNTIME_METHODS: string [],
     EXPORTED_FUNCTIONS: string [],
-    ONLY_MY_CODE: number,
     SIDE_MODULE: number,
     ALLOW_MEMORY_GROWTH: number,
     RELOCATABLE: number,
@@ -285,7 +284,6 @@ function ezCompile() {
     options: {
       EXPORTED_RUNTIME_METHODS: [],
       EXPORTED_FUNCTIONS: [],
-      ONLY_MY_CODE: 1,
       ALLOW_MEMORY_GROWTH: 1,
       SIDE_MODULE: 0,
       RELOCATABLE: 1,
@@ -309,10 +307,9 @@ function ezCompile() {
   args.push(["-s", "BINARYEN_IMPRECISE=1"]);
 
   args.push(["-s", `VERBOSE=${config.options.VERBOSE}`]);
-  args.push(["-s", `RELOCATABLE=${config.options.RELOCATABLE}`]);
-  args.push(["-s", `ONLY_MY_CODE=${config.options.ONLY_MY_CODE}`]);
   args.push(["-s", `ALLOW_MEMORY_GROWTH=${config.options.ALLOW_MEMORY_GROWTH}`]);
   args.push(["-s", `SIDE_MODULE=${config.options.SIDE_MODULE}`]);
+  args.push(["-s", `RELOCATABLE=${config.options.RELOCATABLE}`]);
   args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
   args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
 
@@ -324,7 +321,7 @@ function ezCompile() {
   console.info(EMCC + " " + args.join(" "));
   res = spawnSync(EMCC, args, { stdio: [0, 1, 2] });
   if (res.status !== 0) fail("Compilation error.");
-  let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
+  let postfixes = [".asm.js", ".js", ".wasm"];
   let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
   let outputFiles = postfixes.map(postfix => filename + postfix);
   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");

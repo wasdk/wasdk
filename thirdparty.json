@@ -1,21 +1,21 @@
 {
   "linux": {
     "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/linux_64bit/emscripten-llvm-latest.tar.gz",
-    "binaryen": "http://areweflashyet.com/wasm/binaryen-linux-latest.tar.gz",
+    "binaryen": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/linux/binaryen-linux-latest.tar.gz",
     "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-linux-x86_64.zip"
   },
   "darwin": {
     "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/osx_64bit/emscripten-llvm-latest.tar.gz",
-    "binaryen": "http://areweflashyet.com/wasm/binaryen-mac-latest.tar.gz",
+    "binaryen": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/mac/binaryen-mac-latest.tar.gz",
     "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-mac.zip"
   },
   "win32": {
     "llvm": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/llvm/nightly/win_64bit/emscripten-llvm-latest.zip",
-    "binaryen": "http://areweflashyet.com/wasm/binaryen-win-latest.tar.gz",
+    "binaryen": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/windows/binaryen-win-latest.tar.gz",
     "spidermonkey": "https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/jsshell-win32.zip"
   },
   "all": {
     "emscripten": "https://s3.amazonaws.com/mozilla-games/emscripten/packages/emscripten/nightly/linux/emscripten-latest.tar.gz",
-    "emscriptenpatch": "http://areweflashyet.com/wasm/emscripten-tools.zip"
+    "emscriptenpatch": "https://raw.githubusercontent.com/wasdk/wasdk-platform-tools/master/all/emscripten-tools.zip"
   }
 }
