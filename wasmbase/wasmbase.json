@@ -1,16 +1,15 @@
 {
     "compilerOptions": {
     },
-    "output": "malloc.wasm",
-    "interface": "malloc.idl",
+    "output": "wasmbase.wast",
     "files": [
-        "malloc.cpp"
+        "wasmbase.cpp"
     ],
     "options": {
         "ALLOW_MEMORY_GROWTH": 1,
         "RELOCATABLE": 0,
         "SIDE_MODULE": 0,
         "EXPORTED_RUNTIME_METHODS": [],
-        "EXPORTED_FUNCTIONS": []
+        "EXPORTED_FUNCTIONS": ["_malloc", "_free"]
     }
 }

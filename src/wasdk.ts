@@ -19,7 +19,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync } from "./shared";
-import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import { WASDK_DEBUG, EMCC, JS, DISASSEMBLER, WEBIDL_BINDER, TMP_DIR, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
 import { WebIDLWasmGen, WasmIDL } from "./wasm-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
@@ -55,6 +55,9 @@ emccParser.addArgument(['args'], { nargs: '...' });
 let jsParser = subparsers.addParser('js', { help: "SpiderMonkey Shell", addHelp: true });
 jsParser.addArgument(['args'], { nargs: '...' });
 
+let dumpParser = subparsers.addParser('dump', { help: "Print WebAssembly text", addHelp: true });
+dumpParser.addArgument(['input'], { help: 'Input .wasm file.' });
+
 var cliArgs = parser.parseArgs();
 
 WASDK_DEBUG && console.dir(cliArgs);
@@ -65,6 +68,7 @@ if (cliArgs.command === "sdk") sdk();
 if (cliArgs.command === "idl") idl();
 if (cliArgs.command === "ez") ezCompile();
 if (cliArgs.command === "disassemble") disassemble();
+if (cliArgs.command === "dump") dump();
 
 function section(name) {
   console.log(name.bold.green.underline);
@@ -262,6 +266,14 @@ function resolveConfig(config: Config, configPath: string = null) {
     config.options.EXPORTED_FUNCTIONS.push("__growWasmMemory");
   }
 }
+function dumpWasm(wasmPath: string): string {
+  let res = spawnSync(DISASSEMBLER, [wasmPath], { stdio: [0, 1, 2] });
+  if (res.status !== 0) fail("Disassembly error: " + res.error);
+  return res.output.toString();
+}
+function dump() {
+  console.log(dumpWasm(cliArgs.input));
+}
 function quoteStringArray(a: string []): string {
   return `[${a.map(x => `'${x}'`).join(", ")}]`;
 }
@@ -284,8 +296,8 @@ function ezCompile() {
     options: {
       EXPORTED_RUNTIME_METHODS: [],
       EXPORTED_FUNCTIONS: [],
-      ALLOW_MEMORY_GROWTH: 1,
-      SIDE_MODULE: 0,
+      ALLOW_MEMORY_GROWTH: 0,
+      SIDE_MODULE: 1,
       RELOCATABLE: 1,
       VERBOSE: 0
     }
@@ -315,57 +327,36 @@ function ezCompile() {
 
   if (cliArgs.debuginfo) args.push("-g 3");
   args.push(inputFiles);
-  let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve(config.output || "a.js");
-  args.push(["-o", outputFile]);
+  let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve(config.output || "a.wasm");
+  let extension = path.extname(outputFile) || '.wasm';
+  let removeUnneedOutput = extension.toLowerCase() !== '.js';
+  let baseOutputName = path.join(path.dirname(outputFile),
+    (removeUnneedOutput ? "~tmp." : "") + path.basename(outputFile, extension));
+  args.push(["-o", baseOutputName + ".js"]);
   args = flatten(args);
-  console.info(EMCC + " " + args.join(" "));
+  if (WASDK_DEBUG) console.log(EMCC + " " + args.join(" "));
   res = spawnSync(EMCC, args, { stdio: [0, 1, 2] });
-  if (res.status !== 0) fail("Compilation error.");
-  let postfixes = [".asm.js", ".js", ".wasm"];
-  let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
-  let outputFiles = postfixes.map(postfix => filename + postfix);
+  if (res.status !== 0) fail("Compilation error: " + res.error.toString());
+  let postfixes = [".wasm"];
+  if (!config.options.SIDE_MODULE)
+    postfixes.push(".asm.js", ".js");
+  let outputFiles = postfixes.map(postfix => baseOutputName + postfix);
   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
+  if (removeUnneedOutput) {
+    switch (extension.toLowerCase()) {
+      case '.wasm':
+        fs.renameSync(baseOutputName + '.wasm', outputFile);
+        break;
+      case '.wast':
+        fs.writeFileSync(outputFile, dumpWasm(baseOutputName + '.wasm'));
+        break;
+    }
+    postfixes.forEach(postfix => {
+      if (fs.existsSync(baseOutputName + postfix))
+        fs.unlinkSync(baseOutputName + postfix);
+    });
+  }
 }
-
-// function ezCompile() {
-//   let inputFiles = [path.resolve(cliArgs.input)];
-//   let tmpInputFile = createTmpFile() + ".cpp";
-//   appendFilesSync(tmpInputFile, inputFiles);
-
-//   let res, args, glueFile;
-//   if (cliArgs.idl) {
-//     let idlFile = path.resolve(cliArgs.idl);
-//     glueFile = createTmpFile();
-//     args = [WEBIDL_BINDER, idlFile, glueFile];
-//     res = spawnSync("python", args, { stdio: [0, 1, 2] });
-//     if (res.status !== 0) fail("WebIDL binding error.");
-//     if (!fs.existsSync(glueFile + ".cpp") || !fs.existsSync(glueFile + ".js"))
-//       fail("WebIDL binding error.");
-//   }
-//   if (glueFile) {
-//     appendFilesSync(tmpInputFile, [glueFile + ".cpp"]);
-//   }
-//   args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
-//   args.push(["-s", "NO_FILESYSTEM=1"]);
-//   args.push(["-s", "NO_EXIT_RUNTIME=1"]);
-//   args.push(["-s", "DISABLE_EXCEPTION_CATCHING=1"]);
-//   args.push(["-s", "VERBOSE=1"]);
-
-//   if (cliArgs.debuginfo) args.push("-g 3");
-//   args.push(tmpInputFile);
-//   let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve("a.js");
-//   args.push(["-o", outputFile]);
-//   if (glueFile) {
-//     args.push(["--post-js", glueFile + ".js"]);
-//   }
-//   // console.info(EMCC + " " + args.join(" "));
-//   res = spawnSync(EMCC, flatten(args), { stdio: [0, 1, 2] });
-//   if (res.status !== 0) fail("Compilation error.");
-//   let postfixes = [".asm.js", ".js", ".wasm", ".wast"];
-//   let filename = path.join(path.dirname(outputFile), path.basename(outputFile, ".js"));
-//   let outputFiles = postfixes.map(postfix => filename + postfix);
-//   if (!outputFiles.every(file => fs.existsSync(file))) fail("Compilation error.");
-// }
 
 function getWasmSMCommandArgs(input) {
   var smAsNode = path.resolve(__dirname, '..', 'sm_as_node.js');

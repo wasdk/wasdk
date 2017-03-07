@@ -2,7 +2,7 @@
     "compilerOptions": {
 
     },
-    "output": "list.js",
+    "output": "list.wasm",
     "interface": "list.idl",
     "files": [
         "list.c"

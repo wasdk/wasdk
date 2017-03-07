@@ -48,10 +48,10 @@ export let EMSCRIPTEN_ROOT = pathFromRoot("bin", "emscripten");
 export let BINARYEN_ROOT = pathFromRoot("bin", "binaryen");
 export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
 
-export let EMCC = pathFromRoot("bin", "emscripten", "emcc" + ifWindows(".bat"));
-export let JS = pathFromRoot(SPIDERMONKEY_ROOT, "js" + ifWindows(".exe"));
-
-export let WEBIDL_BINDER = pathFromRoot("bin", "emscripten", "tools", "webidl_binder.py");
+export let EMCC = path.join(EMSCRIPTEN_ROOT, "emcc" + ifWindows(".bat"));
+export let JS = path.join(SPIDERMONKEY_ROOT, "js" + ifWindows(".exe"));
+export let DISASSEMBLER = path.join(BINARYEN_ROOT, "bin", "wasm-dis" + ifWindows(".exe"));
+export let WEBIDL_BINDER = path.join(EMSCRIPTEN_ROOT, "tools", "webidl_binder.py");
 
 export function writeEMConfig() {
   let str = `LLVM_ROOT = '${replaceBackslash(LLVM_ROOT)}'
