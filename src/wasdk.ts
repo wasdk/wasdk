@@ -20,7 +20,7 @@ import * as path from "path";
 import { ArgumentParser } from "argparse";
 import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync } from "./shared";
 import { WASDK_DEBUG, EMCC, JS, WEBIDL_BINDER, TMP_DIR, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
-import { WebIDLWasmGen, WasmIDL } from "./wasm-idl/wasm-idl";
+import { WebIDLWasmGen, WasmIDL } from "./wasm-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',

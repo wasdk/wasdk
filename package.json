@@ -1,11 +1,11 @@
 {
   "name": "wasdk",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
     "test": "node ./dist/wasdk.js sdk --test",
-    "build": "tsc && tsc -p wasm-sm/tsconfig.json && tsc -p wasm-shell/tsconfig.json && node_modules/.bin/tsc -p wasm-idl/tsconfig.json",
+    "build": "tsc",
     "postinstall": "node ./dist/wasdk.js sdk --install",
     "installdeps": "npm install --ignore-scripts",
     "clean": "rm -rf .wasdk-tmp/ bin/ lib/ node_modules/"

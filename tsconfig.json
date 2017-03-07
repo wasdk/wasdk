@@ -8,7 +8,10 @@
         "node_modules"
     ],
     "files": [
-        "shared.ts",
-        "wasdk.ts"
+        "src/shared.ts",
+        "src/wasdk.ts",
+        "src/wasm-idl.ts",
+        "src/wasm-shell.ts",
+        "src/wasm-sm.ts"
     ]
 }
