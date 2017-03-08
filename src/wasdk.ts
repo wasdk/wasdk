@@ -18,8 +18,15 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ArgumentParser } from "argparse";
-import { appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith, writeEMConfig, flatten, createTmpFile, wasdkPath, pathFromRoot, downloadFileSync, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync } from "./shared";
-import { WASDK_DEBUG, EMCC, JS, DISASSEMBLER, WEBIDL_BINDER, TMP_DIR, EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG } from "./shared";
+import {
+  appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith,
+  writeEMConfig, flatten, wasdkPath, pathFromRoot, downloadFileSync,
+  decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync
+} from "./shared";
+import {
+  WASDK_DEBUG, EMCC, JS, ASSEMBLER, DISASSEMBLER, WEBIDL_BINDER, TMP_DIR,
+  EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG
+} from "./shared";
 import { WebIDLWasmGen, WasmIDL } from "./wasm-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
@@ -58,6 +65,10 @@ jsParser.addArgument(['args'], { nargs: '...' });
 let dumpParser = subparsers.addParser('dump', { help: "Print WebAssembly text", addHelp: true });
 dumpParser.addArgument(['input'], { help: 'Input .wasm file.' });
 
+let asParser = subparsers.addParser('as', { help: "WebAssembly text-to-binary", addHelp: true });
+asParser.addArgument(['input'], { help: 'Input .wast file.' });
+asParser.addArgument(['output'], { help: 'Output .wasm file.' });
+
 var cliArgs = parser.parseArgs();
 
 WASDK_DEBUG && console.dir(cliArgs);
@@ -69,6 +80,7 @@ if (cliArgs.command === "idl") idl();
 if (cliArgs.command === "ez") ezCompile();
 if (cliArgs.command === "disassemble") disassemble();
 if (cliArgs.command === "dump") dump();
+if (cliArgs.command === "as") assemble();
 
 function section(name) {
   console.log(name.bold.green.underline);
@@ -267,12 +279,18 @@ function resolveConfig(config: Config, configPath: string = null) {
   }
 }
 function dumpWasm(wasmPath: string): string {
-  let res = spawnSync(DISASSEMBLER, [wasmPath], { stdio: [0, 1, 2] });
-  if (res.status !== 0) fail("Disassembly error: " + res.error);
-  return res.output.toString();
+  let res = spawnSync(DISASSEMBLER, [wasmPath]);
+  if (res.status !== 0)
+    fail("Disassembly error:\n" + res.stderr);
+  return res.stdout.toString();
 }
 function dump() {
   console.log(dumpWasm(cliArgs.input));
+}
+function assemble() {
+  let res = spawnSync(ASSEMBLER, [cliArgs.input, '-o', cliArgs.output], { stdio: [0, 1, 2] });
+  if (res.status !== 0)
+    fail("Wasm assembly error:\n" + res.stderr);
 }
 function quoteStringArray(a: string []): string {
   return `[${a.map(x => `'${x}'`).join(", ")}]`;

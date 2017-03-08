@@ -8,6 +8,7 @@
         "node_modules"
     ],
     "files": [
+        "src/api.ts",
         "src/shared.ts",
         "src/wasdk.ts",
         "src/wasm-idl.ts",

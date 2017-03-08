@@ -24,8 +24,8 @@ import {
 
 export {
   appendFilesSync, spawnSync, fail, pathLooksLikeDirectory, endsWith,
-  flatten, createTmpFile, decompressFileSync, deleteFileSync,
-  ensureDirectoryCreatedSync, TMP_DIR
+  flatten, decompressFileSync, deleteFileSync, ensureDirectoryCreatedSync,
+  TMP_DIR
 } from 'wasdk-utils';
 
 export let WASDK_DEBUG = process.env.WASDK_DEBUG;
@@ -50,6 +50,7 @@ export let SPIDERMONKEY_ROOT = pathFromRoot("bin", "spidermonkey");
 
 export let EMCC = path.join(EMSCRIPTEN_ROOT, "emcc" + ifWindows(".bat"));
 export let JS = path.join(SPIDERMONKEY_ROOT, "js" + ifWindows(".exe"));
+export let ASSEMBLER = path.join(BINARYEN_ROOT, "bin", "wasm-as" + ifWindows(".exe"));
 export let DISASSEMBLER = path.join(BINARYEN_ROOT, "bin", "wasm-dis" + ifWindows(".exe"));
 export let WEBIDL_BINDER = path.join(EMSCRIPTEN_ROOT, "tools", "webidl_binder.py");
 

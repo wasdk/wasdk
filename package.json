@@ -1,6 +1,6 @@
 {
   "name": "wasdk",
-  "version": "1.0.45",
+  "version": "1.0.46",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
@@ -20,11 +20,13 @@
     "url": "https://github.com/wasdk/wasdk"
   },
   "dependencies": {
+    "@types/tmp": "0.0.32",
     "argparse": "^1.0.9",
     "colors": "^1.1.2",
     "fs-extra": "^0.30.0",
+    "tmp": "0.0.31",
     "wasdk-capstone-x86": "^1.0.6",
-    "wasdk-utils": "^1.0.0",
+    "wasdk-utils": "^1.0.3",
     "wasmparser": "^0.1.9",
     "webidl2": "^2.0.11"
   },
