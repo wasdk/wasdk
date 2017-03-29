@@ -1,6 +1,6 @@
 {
   "name": "wasdk",
-  "version": "1.0.46",
+  "version": "1.0.47",
   "description": "WebAssembly SDK",
   "main": "index.js",
   "scripts": {
