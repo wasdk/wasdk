@@ -27,7 +27,7 @@ import {
   WASDK_DEBUG, EMCC, JS, ASSEMBLER, DISASSEMBLER, WEBIDL_BINDER, TMP_DIR,
   EMSCRIPTEN_ROOT, LLVM_ROOT, BINARYEN_ROOT, SPIDERMONKEY_ROOT, EM_CONFIG
 } from "./shared";
-import { WebIDLWasmGen, WasmIDL } from "./wasm-idl";
+import { WebIDLWasmGen, parseModuleOperations } from "wasdk-idl";
 var colors = require('colors');
 var parser = new ArgumentParser({
   version: '0.0.1',
@@ -148,76 +148,24 @@ function clean() {
   deleteFileSync(EMSCRIPTEN_ROOT);
 }
 
-function updateHFile(hFilePath: string, updated: string) {
+function updateHFile(hFilePath: string, gen: WebIDLWasmGen) {
   if (!fs.existsSync(hFilePath)) {
-    fs.writeFileSync(hFilePath, updated);
+    fs.writeFileSync(hFilePath, gen.getHCode());
     return;
   }
   var old = fs.readFileSync(hFilePath).toString();
   fs.writeFileSync(hFilePath + '.bak', old);
-  var combined = updated;
-  // getting all content between "additional members"-comment and ends of the class
-  var m1, re1 = new RegExp(`\n// additional (\\w+) members([^\\n]|\\n(?!\\};))+`, "g");
-  while ((m1 = re1.exec(old))) {
-    var re2 = new RegExp(`\n// additional ${m1[1]} members([^\\n]|\\n(?!\\};))+`);
-    // ... and placing that into new generated code in the same spot
-    combined = combined.replace(re2, m1[0].split('$').join('$$'));
-  }
+  var combined = gen.updateHCode(old);
   fs.writeFileSync(hFilePath, combined);
 }
-function updateCxxFile(cxxFilePath: string, updated: string) {
+function updateCxxFile(cxxFilePath: string, gen: WebIDLWasmGen) {
   if (!fs.existsSync(cxxFilePath)) {
-    fs.writeFileSync(cxxFilePath, updated);
+    fs.writeFileSync(cxxFilePath, gen.getCxxCode());
     return;
   }
-  var combined = fs.readFileSync(cxxFilePath).toString();
-  fs.writeFileSync(cxxFilePath + '.bak', combined);
-  // replace all static typeid's
-  var re1 = new RegExp(`int (\\w+)::_typeid = (\\d+);`, "g");
-  combined = combined.replace(re1, (all, name, id) => {
-    var m = new RegExp(`int ${name}::_typeid = (\\d+);`).exec(updated);
-    return m ? m[0] : all;
-  });
-  // find all new blocks
-  var m2, re2 = new RegExp(`\n// (\\w+) (class|callback) members([^\\n]|\\n(?!// end of};))+// end of \\1 \\2 members`, "g");
-  while ((m2 = re2.exec(updated))) {
-    var found = false;
-    var updatedBlock = m2[0];
-    var isCallback = m2[2] == 'callback';
-    var re3 = new RegExp(`\n// ${m2[1]} ${m2[2]} members([^\\n]|\\n(?!// end of};))+// end of ${m2[1]} ${m2[2]} members`);
-    // ... and try to update existing
-    combined = combined.replace(re3, (combinedBlock: string) => {
-      found = true;
-      if (isCallback) {
-        return updatedBlock;
-      }
-      // we don't interested in constructors, replacing methods bodies
-      var m4, re4 = new RegExp(`(\\n(((unsigned|signed)\\s)?\\w+)\\s+${m2[1]}::(\\w+)\\(([^\\)]*)\\)\\s+\\{)(([^\\n]|\\n(?!\\}))*\\n)\\}`, "g");
-      while ((m4 = re4.exec(updatedBlock))) {
-        var updatedMethod = m4[0];
-        var prefix = m4[1];
-        var name = m4[5];
-        var methodFound = false;
-        // replacing method outer signature
-        var re5 = new RegExp(`(\n(((unsigned|signed)\\s)?\\w+)\\s+${m2[1]}::(${name})\\(([^\\)]*)\\)\\s+\\{)(([^\\n]|\\n(?!\\}))*\\n)\\}`);
-        combinedBlock = combinedBlock.replace(re5, (all, _1, _2, _3, _4, _5, _6, body) => {
-          methodFound = true;
-          return prefix + body + '}';
-        });
-        if (!methodFound) {
-          // .. or add at the end
-          var i = combinedBlock.lastIndexOf('\n// end of');
-          combinedBlock = combinedBlock.substring(0, i) + updatedMethod + combinedBlock.substring(i);
-        }
-      }
-      return combinedBlock;
-    });
-    if (!found) {
-      // .. or add at the end
-      var i = combined.indexOf('\n} // namespace ');
-      combined = combined.substring(0, i) + updatedBlock + combined.substring(i);
-     }
-  }
+  var old = fs.readFileSync(cxxFilePath).toString();
+  fs.writeFileSync(cxxFilePath + '.bak', old);
+  var combined = gen.updateCxxCode(old);
   fs.writeFileSync(cxxFilePath, combined);
 }
 function idl() {
@@ -234,8 +182,8 @@ function idl() {
   gen.parse(idlContent);
   fs.writeFileSync(path.join(outputDir, fileprefix + '.js'), gen.getJSCode());
   fs.writeFileSync(path.join(outputDir, fileprefix + '.json'), gen.getJsonCode());
-  updateHFile(path.join(outputDir, fileprefix + '.h'), gen.getHCode());
-  updateCxxFile(path.join(outputDir, fileprefix + '.cpp'), gen.getCxxCode());
+  updateHFile(path.join(outputDir, fileprefix + '.h'), gen);
+  updateCxxFile(path.join(outputDir, fileprefix + '.cpp'), gen);
 }
 
 interface Config {
@@ -269,10 +217,9 @@ function resolveConfig(config: Config, configPath: string = null) {
     config.output = resolvePath(config.output);
   }
   if (config.interface) {
-    let idl = WasmIDL.parse(fs.readFileSync(config.interface).toString());
-    let moduleInterface = WasmIDL.getInterfaceByName("Module", idl);
-    if (!moduleInterface) fail("WebIDL file must declare a Module interface.");
-    let members = moduleInterface.members.filter(m => m.type === "operation").map(m => m.name);
+    let members = parseModuleOperations(
+      fs.readFileSync(config.interface).toString());
+    if (!members) fail("WebIDL file must declare a Module interface.");
     config.options.EXPORTED_FUNCTIONS = config.options.EXPORTED_FUNCTIONS.concat(members.map(m => "_" + m));
 
     config.options.EXPORTED_FUNCTIONS.push("__growWasmMemory");
