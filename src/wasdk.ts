@@ -276,6 +276,7 @@ function ezCompile() {
   }
 
   let inputFiles = config.files.map(file => path.resolve(file));
+  let isCpp = config.files.some(file => /\.cpp$/i.test(file));
   let res, args, glueFile;
   args = ["--em-config", EM_CONFIG, "-s", "BINARYEN=1", "-O3"];
   args.push(["-s", "NO_FILESYSTEM=1"]);
@@ -290,6 +291,7 @@ function ezCompile() {
   args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
   args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
 
+  if (isCpp) args.push("--std=c++11");
   if (cliArgs.debuginfo) args.push("-g 3");
   args.push(inputFiles);
   let outputFile = cliArgs.output ? path.resolve(cliArgs.output) : path.resolve(config.output || "a.wasm");
