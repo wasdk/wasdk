@@ -17,7 +17,7 @@
 
 import {
   BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry,
-  IImportEntry, ExternalKind
+  IImportEntry, ISectionInformation, IFunctionInformation, ExternalKind
 } from 'wasmparser';
 import { Capstone, ARCH_X86, MODE_64, Instruction } from 'wasdk-capstone-x86';
 
@@ -32,6 +32,9 @@ function parseCodeMetricsAndNames(wasm: Uint8Array) {
   let imports = 0;
   let funcIndex = 0;
   let funcIndexForNames = 0;
+  var functionStartAt;
+  var sectionInfo;
+  var lastPosition = reader.position;
 parsing:
   while (reader.read()) {
     switch (reader.state) {
@@ -40,9 +43,10 @@ parsing:
       case BinaryReaderState.ERROR:
         throw reader.error;
       case BinaryReaderState.BEGIN_SECTION:
-        if (reader.currentSection.id != SectionCode.Code &&
-            !(reader.currentSection.id == SectionCode.Custom && bytesToString(reader.currentSection.name) == "name") &&
-            reader.currentSection.id != SectionCode.Import) {
+        sectionInfo = <ISectionInformation>reader.result;
+        if (sectionInfo.id != SectionCode.Code &&
+            !(sectionInfo.id == SectionCode.Custom && bytesToString(sectionInfo.name) == "name") &&
+            sectionInfo.id != SectionCode.Import) {
            reader.skipSection();
         }
         break;
@@ -57,14 +61,17 @@ parsing:
         names[funcIndexForNames++] = bytesToString(nameInfo.funcName);
         break;
       case BinaryReaderState.BEGIN_FUNCTION_BODY:
-        let size = reader.currentFunction.bodyEnd - reader.currentFunction.bodyStart;
-        sizes[funcIndex++] = size;
+        functionStartAt = lastPosition;
         reader.skipFunctionBody();
         break;
       case BinaryReaderState.END_FUNCTION_BODY:
+        let size = lastPosition - functionStartAt;
+        sizes[funcIndex++] = size;
+        break;
       case BinaryReaderState.END_SECTION:
         break;
     }
+    lastPosition = reader.position;
   }
   return {
     imports: imports,
