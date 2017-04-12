@@ -188,6 +188,7 @@ function idl() {
 
 interface Config {
   files: string [];
+  dependencies?: string [],
   interface?: string;
   output?: string;
   options: {
@@ -257,7 +258,7 @@ function mergeConfigs(base: any, delta: any) {
 function ezCompile() {
   let config: Config = {
     files: [],
-    interface: null,
+    dependencies: [],
     options: {
       EXPORTED_RUNTIME_METHODS: [],
       EXPORTED_FUNCTIONS: [],
@@ -290,6 +291,13 @@ function ezCompile() {
   args.push(["-s", `RELOCATABLE=${config.options.RELOCATABLE}`]);
   args.push(["-s", `EXPORTED_RUNTIME_METHODS=${quoteStringArray(config.options.EXPORTED_RUNTIME_METHODS)}`]);
   args.push(["-s", `EXPORTED_FUNCTIONS=${quoteStringArray(config.options.EXPORTED_FUNCTIONS)}`]);
+
+  if (config.dependencies) {
+    config.dependencies.forEach(dependency => {
+      var jsWrapperPath = require.resolve(dependency);
+      args.push("-I" + path.dirname(jsWrapperPath));
+    });
+  }
 
   if (isCpp) args.push("--std=c++11");
   if (cliArgs.debuginfo) args.push("-g 3");
