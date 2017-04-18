@@ -17,7 +17,8 @@
 
 import {
   BinaryReader, BinaryReaderState, SectionCode, bytesToString, INameEntry,
-  IImportEntry, ISectionInformation, IFunctionInformation, ExternalKind
+  IImportEntry, ISectionInformation, IFunctionInformation, ExternalKind,
+  NameType, IFunctionNameEntry
 } from 'wasmparser';
 import { Capstone, ARCH_X86, MODE_64, Instruction } from 'wasdk-capstone-x86';
 
@@ -31,7 +32,6 @@ function parseCodeMetricsAndNames(wasm: Uint8Array) {
   let sizes = [];
   let imports = 0;
   let funcIndex = 0;
-  let funcIndexForNames = 0;
   var functionStartAt;
   var sectionInfo;
   var lastPosition = reader.position;
@@ -57,8 +57,13 @@ parsing:
         imports++;
         break;
       case BinaryReaderState.NAME_SECTION_ENTRY:
-        let nameInfo = <INameEntry>reader.result;
-        names[funcIndexForNames++] = bytesToString(nameInfo.funcName);
+        if ((<INameEntry>reader.result).type !== NameType.Function) {
+          break;
+        }
+        let nameInfo = <IFunctionNameEntry>reader.result;
+        nameInfo.names.forEach(naming => {
+          names[naming.index - imports] = bytesToString(naming.name);
+        })
         break;
       case BinaryReaderState.BEGIN_FUNCTION_BODY:
         functionStartAt = lastPosition;
