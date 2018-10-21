@@ -44,7 +44,7 @@ Wasdk includes a variety of tools which accessible through the `wasdk` command:
 wasdk ez test/malloc.json -o malloc.js
 ```
 
-This producs several files:
+This produces several files:
   - `malloc.asm.js`: asm.js code
   - `malloc.wasm`: WebAssembly Binary
   - `malloc.wast` WebAssembly Text
@@ -56,7 +56,7 @@ This producs several files:
 wasdk js dist/wasm-shell.js malloc.wasm
 ```
 
-This creates a lightweight WebAssembly environemnt and runs the `malloc.wasm` file. At the moment,
+This creates a lightweight WebAssembly environment and runs the `malloc.wasm` file. At the moment,
 this only works with the `malloc.wasm` file.
 
 ### Viewing WebAssembly Compiled Machine Code
