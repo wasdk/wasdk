@@ -24,7 +24,7 @@
     "argparse": "^1.0.9",
     "colors": "^1.1.2",
     "fs-extra": "^0.30.0",
-    "tmp": "0.0.31",
+    "tmp": "0.2.6",
     "wasdk-capstone-x86": "^1.0.6",
     "wasdk-idl": "^1.1.1",
     "wasdk-utils": "^1.0.3",
